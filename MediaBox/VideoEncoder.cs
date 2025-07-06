@@ -83,6 +83,25 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 		}
 	}
 
+	private static int GetDuration(string path)
+	{
+		using Process ffprobe = new();
+		ffprobe.StartInfo.FileName = "ffprobe.exe";
+		ffprobe.StartInfo.Arguments =
+			$"-select_streams v:0 -show_entries format=duration -of compact=p=0:nk=1 -loglevel error \"{path}\"";
+		ffprobe.StartInfo.RedirectStandardOutput = true;
+		ffprobe.Start();
+		string output = ffprobe.StandardOutput.ReadToEnd();
+		ffprobe.WaitForExit();
+		if (ffprobe.ExitCode != 0)
+		{
+			throw new InvalidOperationException(output);
+		}
+		if (!float.TryParse(output, out float durationFloat)) { throw new InvalidOperationException("Duration format not supported."); }
+
+		return (int)durationFloat;
+	}
+
 	private static int GetChannelCount(string path)
 	{
 		using Process ffprobe = new();
@@ -103,10 +122,12 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 
 	private static string GetCroppingConfig(string path)
 	{
+		// Arbitrarily decided numbers
+		int startTime = GetDuration(path) < 600 ? 0 : 300;
 		using Process ffmpeg = new();
 		ffmpeg.StartInfo.FileName = "ffmpeg.exe";
 		ffmpeg.StartInfo.Arguments =
-			$"-skip_frame nokey -y -hide_banner -nostats -t 10:00 -i \"{path}\" -vf cropdetect -an -f null -";
+			$"-skip_frame nokey -y -hide_banner -nostats -noaccurate_seek -ss {startTime} -i \"{path}\" -frames:v 20 -vf cropdetect -an -f null -";
 		ffmpeg.StartInfo.RedirectStandardError = true;
 		ffmpeg.Start();
 		string output = ffmpeg.StandardError.ReadToEnd();
