@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 
-namespace MediaBox;
+namespace MediaBox.Disk;
 
-public static partial class OpticalDisc
+public static partial class OpticalDisk
 {
 	[LibraryImport("winmm.dll", EntryPoint = "mciSendStringW", StringMarshalling = StringMarshalling.Utf16)]
 	private static partial void MciSendStringA(string lpstrCommand, string lpstrReturnString, int uReturnLength,
