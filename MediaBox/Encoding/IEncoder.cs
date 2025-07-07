@@ -1,4 +1,4 @@
-namespace MediaBox;
+namespace MediaBox.Encoding;
 
 public interface IEncoder
 {
@@ -6,7 +6,5 @@ public interface IEncoder
 	string OutPath { get; set; }
 	EncoderPreset Preset { get; set; }
 
-	void Encode();
-	void Encode(string path);
-	void EncodeDirectory();
+	Task EncodeAsync();
 }
