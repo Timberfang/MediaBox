@@ -11,6 +11,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="ConsoleAppFramework" Version="5.5.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="ProcessX" Version="1.5.6"/>
 	</ItemGroup>
 
