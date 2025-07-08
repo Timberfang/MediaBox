@@ -127,7 +127,7 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 		foreach (string file in files)
 		{
 			// Prepare input/output paths
-			string target = GetTargetPath(file);
+			string target = Path.ChangeExtension(GetTargetPath(file), ".mkv");
 			string targetParent = Directory.GetParent(target)?.FullName ?? throw new InvalidOperationException();
 			if (Path.Exists(target)) { return; }
 			if (!Directory.Exists(targetParent)) { Directory.CreateDirectory(targetParent); }
