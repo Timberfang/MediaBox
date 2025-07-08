@@ -136,7 +136,7 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 			try
 			{
 				string[] args = await GetArgs(file);
-				await ProcessX.StartAsync($"ffmpeg -i \"{file}\" {string.Join(" ", args)} \"{target}\" -nostdin")
+				await ProcessX.StartAsync($"ffmpeg -loglevel error -i \"{file}\" {string.Join(" ", args)} \"{target}\" -nostdin")
 					.WaitAsync();
 			}
 			catch (ProcessErrorException e)
