@@ -7,7 +7,7 @@ public static class CommandLine
 {
 	private static readonly Dictionary<string, EncoderPreset> s_encoderPresets =
 		new() { { "quality", EncoderPreset.Quality }, { "normal", EncoderPreset.Normal } };
-	private static readonly string[] s_allowedTypes = ["video"];
+	private static readonly string[] s_allowedTypes = ["video", "audio"];
 	private static readonly string[] s_allowedPresets = ["quality", "normal"];
 
 	public static void StartCommandline(string[] args)
@@ -35,7 +35,7 @@ public static class CommandLine
 			// [AllowedValues()] Could be used here, but it's not compatible with AOT.
 			if (!s_allowedTypes.Contains(type))
 			{
-				Console.WriteLine("The type must be one of: 'video'.");
+				Console.WriteLine("The type must be one of: 'video', 'audio'.");
 				return;
 			}
 			if (!s_allowedPresets.Contains(preset))
@@ -58,8 +58,12 @@ public static class CommandLine
 			switch (type)
 			{
 				case "video":
-					VideoEncoder encoder = new(path, destination, s_encoderPresets[preset.ToLowerInvariant()]);
-					await encoder.EncodeAsync();
+					VideoEncoder videoEncoder = new(path, destination, s_encoderPresets[preset.ToLowerInvariant()]);
+					await videoEncoder.EncodeAsync();
+					break;
+				case "audio":
+					AudioEncoder audioEncoder = new(path, destination, s_encoderPresets[preset]);
+					await audioEncoder.EncodeAsync();
 					break;
 			}
 		}
