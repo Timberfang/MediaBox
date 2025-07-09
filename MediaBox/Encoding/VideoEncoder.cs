@@ -31,9 +31,9 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 		new() { { EncoderPreset.Quality, 128000 }, { EncoderPreset.Normal, 96000 } };
 
 	/// <summary>
-	///     An array of file extensions that will be considered 'video' files.
+	///     A hash set of file extensions that will be considered 'video' files.
 	/// </summary>
-	private readonly string[] _filter = [".mkv", ".webm", ".mp4", ".m4v", ".m4a", ".avi", ".mov", ".qt", ".ogv"];
+	private readonly HashSet<string> _filter = [".mkv", ".webm", ".mp4", ".m4v", ".m4a", ".avi", ".mov", ".qt", ".ogv"];
 
 	/// <summary>
 	///     The encoder 'preset' to use. It must be an integer between 0 and 13 (inclusive).

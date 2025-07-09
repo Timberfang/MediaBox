@@ -22,9 +22,9 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		new() { { EncoderPreset.Quality, 128000 }, { EncoderPreset.Normal, 96000 } };
 
 	/// <summary>
-	///     An array of file extensions that will be considered 'audio' files.
+	///     A hash set of file extensions that will be considered 'audio' files.
 	/// </summary>
-	private readonly string[] _filter = [".mp3", ".wav", ".flac", ".ogg", ".opus"];
+	private readonly HashSet<string> _filter = [".mp3", ".wav", ".flac", ".ogg", ".opus"];
 
 	/// <summary>
 	///     The bitrate FFmpeg is targeting for the audio stream.
