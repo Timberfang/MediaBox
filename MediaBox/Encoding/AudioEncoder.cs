@@ -63,7 +63,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 			// Prepare input/output paths
 			string target = Path.ChangeExtension(GetTargetPath(file), ".opus");
 			string? targetParent = Directory.GetParent(target)?.FullName;
-			if (Path.Exists(target)) { return; }
+			if (Path.Exists(target)) { continue; }
 			if (!Directory.Exists(targetParent) && targetParent != null) { Directory.CreateDirectory(targetParent); }
 
 			// Encode
