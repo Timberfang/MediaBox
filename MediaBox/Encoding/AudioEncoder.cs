@@ -31,32 +31,19 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 	/// </summary>
 	public int AudioBitrate => _audioBitrate[Preset];
 
-	/// <summary>
-	///     The path to a file or directory containing input video.
-	/// </summary>
+	/// <inheritdoc />
 	public string InPath { get; set; } = inPath;
 
-	/// <summary>
-	///     The path to a file or directory where the encoded video will be saved.
-	/// </summary>
-	/// <remarks>
-	///     If more than one file is provided, outPath must be a directory.
-	/// </remarks>
+	/// <inheritdoc />
 	public string OutPath { get; set; } = outPath;
 
-	/// <summary>
-	///     The encoding preset to use: "Quality", "Normal", or "Fast".
-	/// </summary>
+	/// <inheritdoc />
 	public EncoderPreset Preset { get; set; } = preset;
 
-	/// <summary>
-	///     An event that's raised whenever encoding starts on a new file.
-	/// </summary>
+	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
 
-	/// <summary>
-	///     Encodes all valid files in the input path to the output path using FFmpeg.
-	/// </summary>
+	/// <inheritdoc />
 	/// <exception cref="FileNotFoundException">Thrown when the input path does not exist.</exception>
 	/// <exception cref="ProcessErrorException">Thrown when FFmpeg exits with a non-zero exit code.</exception>
 	public async Task EncodeAsync()
