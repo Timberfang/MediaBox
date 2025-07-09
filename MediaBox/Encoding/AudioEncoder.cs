@@ -53,7 +53,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 	///     Encodes all valid files in the input path to the output path using FFmpeg.
 	/// </summary>
 	/// <exception cref="FileNotFoundException">Thrown when the input path does not exist.</exception>
-	/// <exception cref="InvalidOperationException">Thrown when FFmpeg exits with a non-zero exit code.</exception>
+	/// <exception cref="ProcessErrorException">Thrown when FFmpeg exits with a non-zero exit code.</exception>
 	public async Task EncodeAsync()
 	{
 		// Get files to process
@@ -70,15 +70,16 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		{
 			// Prepare input/output paths
 			string target = Path.ChangeExtension(GetTargetPath(file), ".opus");
-			string targetParent = Directory.GetParent(target)?.FullName ?? throw new InvalidOperationException();
+			string? targetParent = Directory.GetParent(target)?.FullName;
 			if (Path.Exists(target)) { return; }
-			if (!Directory.Exists(targetParent)) { Directory.CreateDirectory(targetParent); }
+			if (!Directory.Exists(targetParent) && targetParent != null) { Directory.CreateDirectory(targetParent); }
 
 			// Encode
 			try
 			{
 				string[] args = await GetArgs(file);
-				await ProcessX.StartAsync($"ffmpeg -loglevel error -i \"{file}\" {string.Join(" ", args)} \"{target}\" -nostdin")
+				await ProcessX
+					.StartAsync($"ffmpeg -loglevel error -i \"{file}\" {string.Join(" ", args)} \"{target}\" -nostdin")
 					.WaitAsync();
 			}
 			catch (ProcessErrorException e)

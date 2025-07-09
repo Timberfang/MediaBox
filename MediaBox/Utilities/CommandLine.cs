@@ -1,4 +1,5 @@
 using ConsoleAppFramework;
+using Cysharp.Diagnostics;
 using MediaBox.Encoding;
 
 namespace MediaBox.Utilities;
@@ -22,7 +23,7 @@ public static class CommandLine
 		/// <summary>
 		///     Transcode media to a different format.
 		/// </summary>
-		/// <param name="type">-t, Type of media. The only allowed value is "video".</param>
+		/// <param name="type">-t, Type of media. Allowed values are "video" and "audio".</param>
 		/// <param name="path">-p, Path to the media file or directory.</param>
 		/// <param name="destination">-d, Path where the transcoded media will be saved.</param>
 		/// <param name="preset">Preset for the media. Allowed values are "quality" and "normal".</param>
@@ -35,36 +36,52 @@ public static class CommandLine
 			// [AllowedValues()] Could be used here, but it's not compatible with AOT.
 			if (!s_allowedTypes.Contains(type))
 			{
-				Console.WriteLine("The type must be one of: 'video', 'audio'.");
+				await Console.Error.WriteLineAsync("The type must be one of: 'video', 'audio'.");
 				return;
 			}
 			if (!s_allowedPresets.Contains(preset))
 			{
-				Console.WriteLine("The preset must be one of: 'quality', 'normal'.");
+				await Console.Error.WriteLineAsync("The preset must be one of: 'quality', 'normal'.");
 				return;
 			}
 			if (!Directory.Exists(path) && !File.Exists(path))
 			{
-				Console.WriteLine("Invalid path: " + path);
+				await Console.Error.WriteLineAsync("Invalid path: " + path);
 				return;
 			}
 
 			// It's okay if the destination exists as a directory; the encoder will place files inside the directory.
 			if (File.Exists(destination))
 			{
-				Console.WriteLine("Destination already exists: " + destination);
+				await Console.Error.WriteLineAsync("Destination already exists: " + destination);
 				return;
 			}
-			switch (type)
+			try
 			{
-				case "video":
-					VideoEncoder videoEncoder = new(path, destination, s_encoderPresets[preset.ToLowerInvariant()]);
-					await videoEncoder.EncodeAsync();
-					break;
-				case "audio":
-					AudioEncoder audioEncoder = new(path, destination, s_encoderPresets[preset]);
-					await audioEncoder.EncodeAsync();
-					break;
+				switch (type)
+				{
+					case "video":
+						VideoEncoder videoEncoder = new(path, destination, s_encoderPresets[preset.ToLowerInvariant()]);
+						await videoEncoder.EncodeAsync();
+						break;
+					case "audio":
+						AudioEncoder audioEncoder = new(path, destination, s_encoderPresets[preset]);
+						await audioEncoder.EncodeAsync();
+						break;
+				}
+			}
+			catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+			{
+				await Console.Error.WriteLineAsync("Path not found: " + path);
+			}
+			catch (ProcessErrorException ex)
+			{
+				await Console.Error.WriteLineAsync($"FFmpeg crashed with error code {ex.ExitCode}:");
+				Console.Error.WriteLine(ex.ErrorOutput);
+			}
+			catch (InvalidDataException ex)
+			{
+				await Console.Error.WriteLineAsync($"FFprobe returned an invalid data format: {ex.Message}");
 			}
 		}
 	}

@@ -111,7 +111,7 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 	///     Encodes all valid files in the input path to the output path using FFmpeg.
 	/// </summary>
 	/// <exception cref="FileNotFoundException">Thrown when the input path does not exist.</exception>
-	/// <exception cref="InvalidOperationException">Thrown when FFmpeg exits with a non-zero exit code.</exception>
+	/// <exception cref="ProcessErrorException">Thrown when FFmpeg exits with a non-zero exit code.</exception>
 	public async Task EncodeAsync()
 	{
 		// Get files to process
@@ -128,15 +128,16 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 		{
 			// Prepare input/output paths
 			string target = Path.ChangeExtension(GetTargetPath(file), ".mkv");
-			string targetParent = Directory.GetParent(target)?.FullName ?? throw new InvalidOperationException();
+			string? targetParent = Directory.GetParent(target)?.FullName;
 			if (Path.Exists(target)) { return; }
-			if (!Directory.Exists(targetParent)) { Directory.CreateDirectory(targetParent); }
+			if (!Directory.Exists(targetParent) && targetParent != null) { Directory.CreateDirectory(targetParent); }
 
 			// Encode
 			try
 			{
 				string[] args = await GetArgs(file);
-				await ProcessX.StartAsync($"ffmpeg -loglevel error -i \"{file}\" {string.Join(" ", args)} \"{target}\" -nostdin")
+				await ProcessX
+					.StartAsync($"ffmpeg -loglevel error -i \"{file}\" {string.Join(" ", args)} \"{target}\" -nostdin")
 					.WaitAsync();
 			}
 			catch (ProcessErrorException e)
@@ -155,7 +156,7 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 	/// </summary>
 	/// <param name="path">The path of the file to be processed.</param>
 	/// <returns>An integer representing the duration of the video in seconds.</returns>
-	/// <exception cref="InvalidOperationException">Thrown when FFprobe returns an invalid duration.</exception>
+	/// <exception cref="InvalidDataException">Thrown when FFprobe returns an invalid duration.</exception>
 	private static async Task<int> GetDuration(string path)
 	{
 		string ffprobeOutput = await ProcessX
@@ -164,7 +165,8 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 			.FirstAsync();
 		if (!float.TryParse(ffprobeOutput, out float durationFloat))
 		{
-			throw new InvalidOperationException("Invalid duration format");
+			throw new InvalidDataException(
+				$"{ffprobeOutput} (from file '{Path.GetFileNameWithoutExtension(path)}') is not a float");
 		}
 		return (int)durationFloat;
 	}
