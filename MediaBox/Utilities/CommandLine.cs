@@ -27,16 +27,18 @@ public static class CommandLine
 		/// <param name="path">-p, Path to the media file or directory.</param>
 		/// <param name="destination">-d, Path where the transcoded media will be saved.</param>
 		/// <param name="preset">Preset for the media. Allowed values are "quality" and "normal".</param>
+		/// <param name="noCrop">Whether video files should use crop detection to remove black borders.</param>
 		public static async Task Transcode(
 			string type,
 			string path,
 			string destination,
-			string preset = "normal")
+			string preset = "normal",
+			bool noCrop = true)
 		{
 			// [AllowedValues()] Could be used here, but it's not compatible with AOT.
 			if (!s_allowedTypes.Contains(type))
 			{
-				await Console.Error.WriteLineAsync("The type must be one of: 'video', 'audio'.");
+				await Console.Error.WriteLineAsync("The type must be one of: 'video', 'audio', 'image'.");
 				return;
 			}
 			if (!s_allowedPresets.Contains(preset))
@@ -48,6 +50,11 @@ public static class CommandLine
 			{
 				await Console.Error.WriteLineAsync("Invalid path: " + path);
 				return;
+			}
+			if (!noCrop && !type.Equals("video", StringComparison.OrdinalIgnoreCase))
+			{
+				await Console.Error.WriteLineAsync(
+					"--no-crop only functions with video; this parameter will be ignored.");
 			}
 
 			// It's okay if the destination exists as a directory; the encoder will place files inside the directory.
@@ -64,7 +71,7 @@ public static class CommandLine
 						VideoEncoder videoEncoder = new(path, destination, s_encoderPresets[preset.ToLowerInvariant()]);
 						videoEncoder.FileEncodingStarted +=
 							(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
-						await videoEncoder.EncodeAsync();
+						await videoEncoder.EncodeAsync(!noCrop);
 						break;
 					case "audio":
 						AudioEncoder audioEncoder = new(path, destination, s_encoderPresets[preset]);

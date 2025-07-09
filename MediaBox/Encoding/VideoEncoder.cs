@@ -104,7 +104,11 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 	/// <inheritdoc />
 	/// <exception cref="FileNotFoundException">Thrown when the input path does not exist.</exception>
 	/// <exception cref="ProcessErrorException">Thrown when FFmpeg exits with a non-zero exit code.</exception>
-	public async Task EncodeAsync()
+	public Task EncodeAsync() => EncodeAsync(true);
+
+	/// <inheritdoc cref="EncodeAsync()" />
+	/// <param name="crop">Whether to attempt to crop the video file.</param>
+	public async Task EncodeAsync(bool crop)
 	{
 		// Get files to process
 		IEnumerable<string> files;
@@ -128,7 +132,7 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
 			try
 			{
-				string[] args = await GetArgs(file);
+				string[] args = await GetArgs(file, crop);
 				await ProcessX
 					.StartAsync($"ffmpeg -loglevel error -i \"{file}\" {string.Join(" ", args)} \"{target}\" -nostdin")
 					.WaitAsync();
@@ -207,8 +211,9 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 	///     Builds an array of arguments to pass to FFmpeg.
 	/// </summary>
 	/// <param name="path">The path to the file to be processed.</param>
+	/// <param name="crop">Whether or not to attempt to crop the video file.</param>
 	/// <returns>The path to the file in the output directory.</returns>
-	private async Task<string[]> GetArgs(string path)
+	private async Task<string[]> GetArgs(string path, bool crop = true)
 	{
 		// Start most expensive operations in background tasks
 		Task<int> channelCountTask = GetChannelCount(path);
@@ -236,11 +241,14 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 		args.AddRange(["-b:a", targetAudioBitrate.ToString()]);
 
 		// Handle cropping configuration
-		string croppingConfig = await croppingConfigTask;
-		if (!string.IsNullOrEmpty(croppingConfig))
+		if (crop)
 		{
-			args.Add("-vf");
-			args.Add(croppingConfig);
+			string croppingConfig = await croppingConfigTask;
+			if (!string.IsNullOrEmpty(croppingConfig))
+			{
+				args.Add("-vf");
+				args.Add(croppingConfig);
+			}
 		}
 
 		// Return output
