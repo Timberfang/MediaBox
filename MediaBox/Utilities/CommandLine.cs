@@ -62,10 +62,14 @@ public static class CommandLine
 				{
 					case "video":
 						VideoEncoder videoEncoder = new(path, destination, s_encoderPresets[preset.ToLowerInvariant()]);
+						videoEncoder.FileEncodingStarted +=
+							(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
 						await videoEncoder.EncodeAsync();
 						break;
 					case "audio":
 						AudioEncoder audioEncoder = new(path, destination, s_encoderPresets[preset]);
+						audioEncoder.FileEncodingStarted +=
+							(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
 						await audioEncoder.EncodeAsync();
 						break;
 				}

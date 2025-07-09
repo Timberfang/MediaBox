@@ -50,6 +50,11 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 	public EncoderPreset Preset { get; set; } = preset;
 
 	/// <summary>
+	///     An event that's raised whenever encoding starts on a new file.
+	/// </summary>
+	public event EventHandler<string>? FileEncodingStarted;
+
+	/// <summary>
 	///     Encodes all valid files in the input path to the output path using FFmpeg.
 	/// </summary>
 	/// <exception cref="FileNotFoundException">Thrown when the input path does not exist.</exception>
@@ -75,6 +80,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 			if (!Directory.Exists(targetParent) && targetParent != null) { Directory.CreateDirectory(targetParent); }
 
 			// Encode
+			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
 			try
 			{
 				string[] args = await GetArgs(file);
