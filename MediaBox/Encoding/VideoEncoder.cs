@@ -1,6 +1,5 @@
-using System.Text;
-using System.Text.RegularExpressions;
 using Cysharp.Diagnostics;
+using MediaBox.ExternalProcess;
 
 namespace MediaBox.Encoding;
 
@@ -10,7 +9,7 @@ namespace MediaBox.Encoding;
 /// <param name="inPath">The path to the input video file.</param>
 /// <param name="outPath">The path to save the encoded video file.</param>
 /// <param name="preset">The encoding preset to use: "Quality", "Normal", or "Fast".</param>
-public partial class VideoEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal)
+public class VideoEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal)
 	: IVideoEncoder
 {
 	// TODO: Make these configurable
@@ -130,94 +129,23 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
-			try
-			{
-				string[] args = await GetArgs(file, crop);
-				await ProcessX
-					.StartAsync($"ffmpeg -loglevel error -i \"{file}\" {string.Join(" ", args)} \"{target}\" -nostdin")
-					.WaitAsync();
-			}
-			catch (ProcessErrorException e)
-			{
-				// FFmpeg outputs to stderror whenever a file is encoded.
-				// Only the exit code indicates if it was successful or not.
-				if (e.ExitCode == 0) { continue; }
-				if (File.Exists(target)) { File.Delete(target); }
-				throw;
-			}
+			string args = await GetArgs(file, crop);
+			FFmpegConfig config = new(file, target, args);
+			await FFmpeg.RunAsync(config);
 		}
-	}
-
-	/// <summary>
-	///     Detects the duration of a video file.
-	/// </summary>
-	/// <param name="path">The path of the file to be processed.</param>
-	/// <returns>An integer representing the duration of the video in seconds.</returns>
-	/// <exception cref="InvalidDataException">Thrown when FFprobe returns an invalid duration.</exception>
-	private static async Task<int> GetDuration(string path)
-	{
-		string ffprobeOutput = await ProcessX
-			.StartAsync(
-				$"ffprobe -select_streams v:0 -show_entries format=duration -of compact=p=0:nk=1 -loglevel error \"{path}\"")
-			.FirstAsync();
-		if (!float.TryParse(ffprobeOutput, out float durationFloat))
-		{
-			throw new InvalidDataException(
-				$"{ffprobeOutput} (from file '{Path.GetFileNameWithoutExtension(path)}') is not a float");
-		}
-		return (int)durationFloat;
-	}
-
-	/// <summary>
-	///     Detects the number of audio channels in a video file.
-	/// </summary>
-	/// <param name="path">The path of the file to be processed.</param>
-	/// <returns>An integer representing the number of audio channels.</returns>
-	private static async Task<int> GetChannelCount(string path)
-	{
-		string ffprobeOutput = await ProcessX
-			.StartAsync(
-				$"ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -loglevel error \"{path}\"")
-			.FirstAsync();
-		return int.TryParse(ffprobeOutput, out int channels) ? channels : 0;
-	}
-
-	/// <summary>
-	///     Detects black borders that must be cropped by the encoder.
-	/// </summary>
-	/// <remarks>
-	///     This method takes several shortcuts to try to speed up execution:
-	///     - Only keyframes are analysed.
-	///     - Accurate seeking is disabled.
-	///     - Non-video streams are ignored.
-	///     - Only the first 20 keyframes past the start-time are checked.
-	///     - If the video is at least 10 minutes (600 seconds) long, it starts at 5 minutes (300 seconds).
-	///     - Otherwise, it starts at the beginning (0 seconds).
-	/// </remarks>
-	/// <param name="path">The path of the file to be processed.</param>
-	/// <returns>A string containing the crop information, in FFmpeg's format.</returns>
-	private static async Task<string> GetCroppingConfig(string path)
-	{
-		// This is necessary because ffmpeg always uses stderror with this command
-		int startTime = await GetDuration(path) < 600 ? 0 : 300;
-		(_, _, ProcessAsyncEnumerable stdError) = ProcessX.GetDualAsyncEnumerable(
-			$"ffmpeg -skip_frame nokey -hide_banner -nostats -noaccurate_seek -ss {startTime} -i \"{path}\" -frames:v 20 -vf cropdetect -an -f null -");
-		StringBuilder ffmpegOutput = new();
-		await foreach (string line in stdError) { ffmpegOutput.AppendLine(line); }
-		return CroppingRegex().Match(ffmpegOutput.ToString()).Groups[0].Value;
 	}
 
 	/// <summary>
 	///     Builds an array of arguments to pass to FFmpeg.
 	/// </summary>
 	/// <param name="path">The path to the file to be processed.</param>
-	/// <param name="crop">Whether or not to attempt to crop the video file.</param>
+	/// <param name="crop">Whether to attempt to crop the video file.</param>
 	/// <returns>The path to the file in the output directory.</returns>
-	private async Task<string[]> GetArgs(string path, bool crop = true)
+	private async Task<string> GetArgs(string path, bool crop = true)
 	{
 		// Start most expensive operations in background tasks
-		Task<int> channelCountTask = GetChannelCount(path);
-		Task<string> croppingConfigTask = GetCroppingConfig(path);
+		Task<int> channelCountTask = FFmpeg.GetChannelCount(path);
+		Task<string> croppingConfigTask = FFmpeg.GetCroppingConfig(path);
 
 		// Build basic arguments
 		List<string> args =
@@ -252,7 +180,7 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 		}
 
 		// Return output
-		return args.ToArray();
+		return string.Join(" ", args);
 	}
 
 	/// <summary>
@@ -263,11 +191,4 @@ public partial class VideoEncoder(string inPath, string outPath, EncoderPreset p
 	private string GetTargetPath(string path) => Path.GetExtension(OutPath).Length == 0
 		? Path.Join(OutPath, path.Replace(InPath, string.Empty))
 		: Path.ChangeExtension(OutPath, ".mkv");
-
-	/// <summary>
-	///     The regular expression filter used to parse ffmpeg's crop-detection filter.
-	/// </summary>
-	/// <returns>A compiled regular expression pattern.</returns>
-	[GeneratedRegex("crop=.*", RegexOptions.RightToLeft)]
-	private static partial Regex CroppingRegex();
 }

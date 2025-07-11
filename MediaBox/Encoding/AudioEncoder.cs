@@ -1,4 +1,5 @@
 using Cysharp.Diagnostics;
+using MediaBox.ExternalProcess;
 
 namespace MediaBox.Encoding;
 
@@ -68,48 +69,21 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
-			try
-			{
-				string[] args = await GetArgs(file);
-				await ProcessX
-					.StartAsync($"ffmpeg -loglevel error -i \"{file}\" {string.Join(" ", args)} \"{target}\" -nostdin")
-					.WaitAsync();
-			}
-			catch (ProcessErrorException e)
-			{
-				// FFmpeg outputs to stderror whenever a file is encoded.
-				// Only the exit code indicates if it was successful or not.
-				if (e.ExitCode == 0) { continue; }
-				if (File.Exists(target)) { File.Delete(target); }
-				throw;
-			}
+			string args = await GetArgs(file);
+			FFmpegConfig config = new(file, target, args);
+			await FFmpeg.RunAsync(config);
 		}
 	}
-
-	/// <summary>
-	///     Detects the number of audio channels in a video file.
-	/// </summary>
-	/// <param name="path">The path of the file to be processed.</param>
-	/// <returns>An integer representing the number of audio channels.</returns>
-	private static async Task<int> GetChannelCount(string path)
-	{
-		string ffprobeOutput = await ProcessX
-			.StartAsync(
-				$"ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -loglevel error \"{path}\"")
-			.FirstAsync();
-		return int.TryParse(ffprobeOutput, out int channels) ? channels : 0;
-	}
-
 
 	/// <summary>
 	///     Builds an array of arguments to pass to FFmpeg.
 	/// </summary>
 	/// <param name="path">The path to the file to be processed.</param>
 	/// <returns>The path to the file in the output directory.</returns>
-	private async Task<string[]> GetArgs(string path)
+	private async Task<string> GetArgs(string path)
 	{
 		// Start most expensive operations in background tasks
-		Task<int> channelCountTask = GetChannelCount(path);
+		Task<int> channelCountTask = FFmpeg.GetChannelCount(path);
 
 		// Build basic arguments
 		List<string> args =
@@ -129,7 +103,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		args.AddRange(["-b:a", targetAudioBitrate.ToString()]);
 
 		// Return output
-		return args.ToArray();
+		return string.Join(" ",  args);
 	}
 
 	/// <summary>
