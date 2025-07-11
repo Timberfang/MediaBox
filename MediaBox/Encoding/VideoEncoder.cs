@@ -6,11 +6,7 @@ namespace MediaBox.Encoding;
 /// <summary>
 ///     Encodes a video file from an input path to an output path using FFmpeg.
 /// </summary>
-/// <param name="inPath">The path to the input video file.</param>
-/// <param name="outPath">The path to save the encoded video file.</param>
-/// <param name="preset">The encoding preset to use: "Quality", "Normal", or "Fast".</param>
-public class VideoEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal)
-	: IVideoEncoder
+public class VideoEncoder : IVideoEncoder
 {
 	// TODO: Make these configurable
 	/// <summary>
@@ -62,6 +58,32 @@ public class VideoEncoder(string inPath, string outPath, EncoderPreset preset = 
 		new() { { EncoderPreset.Quality, 27 }, { EncoderPreset.Normal, 33 } };
 
 	/// <summary>
+	///		An IEnumerable containing all the files to be processed.
+	/// </summary>
+	private readonly IEnumerable<string> _files;
+
+	/// <summary>
+	///     Encodes a video file from an input path to an output path using FFmpeg.
+	/// </summary>
+	/// <param name="inPath">The path to the input video file.</param>
+	/// <param name="outPath">The path to save the encoded video file.</param>
+	/// <param name="preset">The encoding preset to use: "Quality", "Normal", or "Fast".</param>
+	public VideoEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal)
+	{
+		InPath = inPath;
+		OutPath = outPath;
+		Preset = preset;
+
+		if (Directory.Exists(InPath))
+		{
+			_files = Directory.EnumerateFiles(InPath, "*", SearchOption.AllDirectories)
+				.Where(f => _filter.Contains(Path.GetExtension(f)));
+		}
+		else if (File.Exists(InPath)) { _files = [InPath]; }
+		else { throw new FileNotFoundException(InPath); }
+	}
+
+	/// <summary>
 	///     The encoder 'preset' used by FFmpeg.
 	/// </summary>
 	/// <remarks>
@@ -89,13 +111,13 @@ public class VideoEncoder(string inPath, string outPath, EncoderPreset preset = 
 	public int AudioBitrate => _audioBitrate[Preset];
 
 	/// <inheritdoc />
-	public string InPath { get; set; } = inPath;
+	public string InPath { get; set; }
 
 	/// <inheritdoc />
-	public string OutPath { get; set; } = outPath;
+	public string OutPath { get; set; }
 
 	/// <inheritdoc />
-	public EncoderPreset Preset { get; set; } = preset;
+	public EncoderPreset Preset { get; set; }
 
 	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
@@ -109,17 +131,7 @@ public class VideoEncoder(string inPath, string outPath, EncoderPreset preset = 
 	/// <param name="crop">Whether to attempt to crop the video file.</param>
 	public async Task EncodeAsync(bool crop)
 	{
-		// Get files to process
-		IEnumerable<string> files;
-		if (Directory.Exists(InPath))
-		{
-			files = Directory.EnumerateFiles(InPath, "*", SearchOption.AllDirectories)
-				.Where(f => _filter.Contains(Path.GetExtension(f)));
-		}
-		else if (File.Exists(InPath)) { files = [InPath]; }
-		else { throw new FileNotFoundException(InPath); }
-
-		foreach (string file in files)
+		foreach (string file in _files)
 		{
 			// Prepare input/output paths
 			string target = Path.ChangeExtension(GetTargetPath(file), ".mkv");
@@ -131,6 +143,44 @@ public class VideoEncoder(string inPath, string outPath, EncoderPreset preset = 
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
 			string args = await GetArgs(file, crop);
 			FFmpegConfig config = new(file, target, args);
+			await FFmpeg.RunAsync(config);
+		}
+	}
+
+	public async Task SilenceVideoAsync()
+	{
+		foreach (string file in _files)
+		{
+			// TODO: Make output name configurable
+			string baseName = Path.GetFileNameWithoutExtension(file);
+			string extension = Path.GetExtension(file);
+			string target = $"{baseName}.silent.{extension}";
+			if (File.Exists(target)) { continue; }
+			FFmpegConfig config = new(file, target, "-c copy -an");
+			await FFmpeg.RunAsync(config);
+		}
+	}
+
+	public async Task TrimVideoAsync(string startTime = "", string endTime = "")
+	{
+		foreach (string file in _files)
+		{
+			// TODO: Make output name configurable
+			string baseName = Path.GetFileNameWithoutExtension(file);
+			string extension = Path.GetExtension(file);
+			string target = $"{baseName}.trimmed.{extension}";
+			if (File.Exists(target)) { continue; }
+			bool startTimeConfigured = startTime.Length > 0;
+			bool endTimeConfigured = endTime.Length > 0;
+
+			// Prepare arguments
+			List<string> args = ["-c", "copy"];
+			if (!startTimeConfigured && !endTimeConfigured) { continue; }
+			if (startTimeConfigured) { args.AddRange(["-ss", startTime]); }
+			if (endTimeConfigured) { args.AddRange(["-to", endTime]); }
+
+			// Trim
+			FFmpegConfig config = new(file, target, string.Join(" ", args));
 			await FFmpeg.RunAsync(config);
 		}
 	}
