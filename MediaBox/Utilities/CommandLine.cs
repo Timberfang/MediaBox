@@ -94,7 +94,7 @@ public static class CommandLine
 			catch (ProcessErrorException ex)
 			{
 				await Console.Error.WriteLineAsync($"FFmpeg crashed with error code {ex.ExitCode}:");
-				Console.Error.WriteLine(ex.ErrorOutput);
+				await Console.Error.WriteLineAsync(string.Join(Environment.NewLine, ex.ErrorOutput));
 			}
 			catch (InvalidDataException ex)
 			{
