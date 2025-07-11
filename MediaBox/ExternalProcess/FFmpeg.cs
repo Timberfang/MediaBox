@@ -14,7 +14,7 @@ public static partial class FFmpeg
 	{
 		// Prepare input/output paths
 		string? directory = Directory.GetParent(config.InPath)?.FullName;
-		if (Path.Exists(config.InPath)) { return; }
+		if (Path.Exists(config.OutPath)) { return; }
 		if (!Directory.Exists(directory) && directory != null) { Directory.CreateDirectory(directory); }
 
 		// Encode
