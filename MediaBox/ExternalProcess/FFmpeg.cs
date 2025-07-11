@@ -7,7 +7,7 @@ namespace MediaBox.ExternalProcess;
 public static partial class FFmpeg
 {
 	/// <summary>
-	///		Runs FFmpeg with the given configuration.
+	///     Runs FFmpeg with the given configuration.
 	/// </summary>
 	/// <param name="config">A configuration object for FFmpeg.</param>
 	public static async Task RunAsync(FFmpegConfig config)
@@ -21,7 +21,8 @@ public static partial class FFmpeg
 		try
 		{
 			await ProcessX
-				.StartAsync($"ffmpeg -loglevel error -nostdin -i \"{config.InPath}\" {config.Arguments} \"{config.OutPath}\"")
+				.StartAsync(
+					$"ffmpeg -loglevel error -nostdin -i \"{config.InPath}\" {config.Arguments} \"{config.OutPath}\"")
 				.WaitAsync();
 		}
 		catch (ProcessErrorException e)

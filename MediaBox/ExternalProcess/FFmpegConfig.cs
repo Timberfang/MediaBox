@@ -1,7 +1,7 @@
 namespace MediaBox.ExternalProcess;
 
 /// <summary>
-///		A configuration object for FFmpeg.
+///     A configuration object for FFmpeg.
 /// </summary>
 /// <param name="InPath">The path to the input file.</param>
 /// <param name="OutPath">The path where the output file will be written.</param>

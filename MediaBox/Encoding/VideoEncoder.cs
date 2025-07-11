@@ -27,6 +27,11 @@ public class VideoEncoder : IVideoEncoder
 		new() { { EncoderPreset.Quality, 128000 }, { EncoderPreset.Normal, 96000 } };
 
 	/// <summary>
+	///     An IEnumerable containing all the files to be processed.
+	/// </summary>
+	private readonly IEnumerable<string> _files;
+
+	/// <summary>
 	///     A hash set of file extensions that will be considered 'video' files.
 	/// </summary>
 	private readonly HashSet<string> _filter = [".mkv", ".webm", ".mp4", ".m4v", ".m4a", ".avi", ".mov", ".qt", ".ogv"];
@@ -57,11 +62,6 @@ public class VideoEncoder : IVideoEncoder
 	/// </remarks>
 	private readonly Dictionary<EncoderPreset, int> _videoQuality =
 		new() { { EncoderPreset.Quality, 27 }, { EncoderPreset.Normal, 33 } };
-
-	/// <summary>
-	///		An IEnumerable containing all the files to be processed.
-	/// </summary>
-	private readonly IEnumerable<string> _files;
 
 	/// <summary>
 	///     Encodes a video file from an input path to an output path using FFmpeg.
@@ -202,6 +202,7 @@ public class VideoEncoder : IVideoEncoder
 		StringBuilder args =
 			new(
 				$"-c:v {VideoCodec} -crf {VideoQuality} -preset {VideoPreset} -c:a {AudioCodec} -c:s copy -af aformat=channel_layouts=7.1|5.1|stereo"); // Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
+
 		// Handle audio bitrate
 		int targetAudioBitrate = await channelCountTask switch
 		{
