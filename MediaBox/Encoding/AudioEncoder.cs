@@ -1,3 +1,4 @@
+using System.Text;
 using Cysharp.Diagnostics;
 using MediaBox.ExternalProcess;
 
@@ -86,12 +87,9 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		Task<int> channelCountTask = FFmpeg.GetChannelCount(path);
 
 		// Build basic arguments
-		List<string> args =
-		[
-			"-c:a", AudioCodec,
-			"-af",
-			"aformat=channel_layouts=7.1|5.1|stereo" // Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
-		];
+		StringBuilder
+			args = new(
+				$"-c:a {AudioCodec} -af aformat=channel_layouts=7.1|5.1|stereo"); // Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
 
 		// Handle audio bitrate
 		int targetAudioBitrate = await channelCountTask switch
@@ -100,10 +98,10 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 			>= 5 => Convert.ToInt32(AudioBitrate) * 2,
 			_ => AudioBitrate
 		};
-		args.AddRange(["-b:a", targetAudioBitrate.ToString()]);
+		args.Append($" -b:a {targetAudioBitrate}");
 
 		// Return output
-		return string.Join(" ",  args);
+		return args.ToString();
 	}
 
 	/// <summary>

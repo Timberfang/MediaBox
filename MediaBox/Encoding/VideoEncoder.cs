@@ -1,3 +1,4 @@
+using System.Text;
 using Cysharp.Diagnostics;
 using MediaBox.ExternalProcess;
 
@@ -174,13 +175,13 @@ public class VideoEncoder : IVideoEncoder
 			bool endTimeConfigured = endTime.Length > 0;
 
 			// Prepare arguments
-			List<string> args = ["-c", "copy"];
+			StringBuilder args = new("-c copy");
 			if (!startTimeConfigured && !endTimeConfigured) { continue; }
-			if (startTimeConfigured) { args.AddRange(["-ss", startTime]); }
-			if (endTimeConfigured) { args.AddRange(["-to", endTime]); }
+			if (startTimeConfigured) { args.Append($" -ss {startTime}"); }
+			if (startTimeConfigured) { args.Append($" -to {endTime}"); }
 
 			// Trim
-			FFmpegConfig config = new(file, target, string.Join(" ", args));
+			FFmpegConfig config = new(file, target, args.ToString());
 			await FFmpeg.RunAsync(config);
 		}
 	}
@@ -198,17 +199,9 @@ public class VideoEncoder : IVideoEncoder
 		Task<string> croppingConfigTask = FFmpeg.GetCroppingConfig(path);
 
 		// Build basic arguments
-		List<string> args =
-		[
-			"-c:v", VideoCodec,
-			"-crf", VideoQuality.ToString(),
-			"-preset", VideoPreset.ToString(),
-			"-c:a", AudioCodec,
-			"-c:s", "copy",
-			"-af",
-			"aformat=channel_layouts=7.1|5.1|stereo" // Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
-		];
-
+		StringBuilder args =
+			new(
+				$"-c:v {VideoCodec} -crf {VideoQuality} -preset {VideoPreset} -c:a {AudioCodec} -c:s copy -af aformat=channel_layouts=7.1|5.1|stereo"); // Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
 		// Handle audio bitrate
 		int targetAudioBitrate = await channelCountTask switch
 		{
@@ -216,21 +209,17 @@ public class VideoEncoder : IVideoEncoder
 			>= 5 => Convert.ToInt32(AudioBitrate) * 2,
 			_ => AudioBitrate
 		};
-		args.AddRange(["-b:a", targetAudioBitrate.ToString()]);
+		args.Append($" -b:a {targetAudioBitrate}");
 
 		// Handle cropping configuration
 		if (crop)
 		{
 			string croppingConfig = await croppingConfigTask;
-			if (!string.IsNullOrEmpty(croppingConfig))
-			{
-				args.Add("-vf");
-				args.Add(croppingConfig);
-			}
+			if (!string.IsNullOrEmpty(croppingConfig)) { args.Append($" -vf {croppingConfig}"); }
 		}
 
 		// Return output
-		return string.Join(" ", args);
+		return args.ToString();
 	}
 
 	/// <summary>
