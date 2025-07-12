@@ -9,17 +9,6 @@ namespace MediaBox.Encoding;
 /// </summary>
 public class VideoEncoder : IVideoEncoder
 {
-	// TODO: Make these configurable
-	/// <summary>
-	///     The video codec to use for encoding. It must be a valid codec for FFmpeg.
-	/// </summary>
-	private const string VideoCodec = "libsvtav1";
-
-	/// <summary>
-	///     The audio codec to use for encoding. It must be a valid codec for FFmpeg.
-	/// </summary>
-	private const string AudioCodec = "libopus";
-
 	/// <summary>
 	///     The target bitrate for the audio stream.
 	/// </summary>
@@ -84,31 +73,22 @@ public class VideoEncoder : IVideoEncoder
 		else { throw new FileNotFoundException(InPath); }
 	}
 
-	/// <summary>
-	///     The encoder 'preset' used by FFmpeg.
-	/// </summary>
-	/// <remarks>
-	///     The preset defines the tradeoff between encoding speed and the size of the output file.
-	///     Higher preset values result in smaller files but take longer to encode.
-	///     Lower preset values result in larger files but encode faster.
-	///     Quality is not affected by the preset value.
-	/// </remarks>
+	/// <inheritdoc />
+	public string VideoCodec { get; set; } = "libsvtav1";
+
+	/// <inheritdoc />
+	public string AudioCodec { get; set; } = "libopus";
+
+	/// <inheritdoc />
+	public string SubtitleCodec { get; set; } = "copy";
+
+	/// <inheritdoc />
 	public int VideoPreset => _videoPreset[Preset];
 
-	/// <summary>
-	///     The CRF (Constant Rate Factor) value used by FFmpeg.
-	/// </summary>
-	/// <remarks>
-	///     CRF is a quality setting that controls the level of compression applied to the video.
-	///     Lower CRF values result in higher quality but larger files.
-	///     Higher CRF values result in lower quality but smaller files.
-	///     CRF is a logarithmic scale, so the difference in quality between two CRF values is not linear.
-	/// </remarks>
+	/// <inheritdoc />
 	public int VideoQuality => _videoQuality[Preset];
 
-	/// <summary>
-	///     The bitrate FFmpeg is targeting for the audio stream.
-	/// </summary>
+	/// <inheritdoc />
 	public int AudioBitrate => _audioBitrate[Preset];
 
 	/// <inheritdoc />
@@ -201,7 +181,7 @@ public class VideoEncoder : IVideoEncoder
 		// Build basic arguments
 		StringBuilder args =
 			new(
-				$"-c:v {VideoCodec} -crf {VideoQuality} -preset {VideoPreset} -c:a {AudioCodec} -c:s copy -af aformat=channel_layouts=7.1|5.1|stereo"); // Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
+				$"-c:v {VideoCodec} -crf {VideoQuality} -preset {VideoPreset} -c:a {AudioCodec} -c:s {SubtitleCodec} -af aformat=channel_layouts=7.1|5.1|stereo"); // Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
 
 		// Handle audio bitrate
 		int targetAudioBitrate = await channelCountTask switch
