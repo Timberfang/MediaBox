@@ -120,6 +120,10 @@ public class VideoEncoder : IVideoEncoder
 			if (Path.Exists(target)) { continue; }
 			if (!Directory.Exists(targetParent) && targetParent != null) { Directory.CreateDirectory(targetParent); }
 
+			// Fix subtitle codec if needed - .mp4 files use MOV_TEXT, which other formats don't support.
+			if (SubtitleCodec.Equals("copy") && Path.GetExtension(file).Equals(".mp4") &&
+			    !Path.GetExtension(target).Equals(".mp4")) { SubtitleCodec = "srt"; }
+
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
 			string args = await GetArgs(file, crop);
