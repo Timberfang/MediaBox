@@ -1,5 +1,7 @@
 using System.Text;
+
 using Cysharp.Diagnostics;
+
 using MediaBox.ExternalProcess;
 
 namespace MediaBox.Encoding;
@@ -109,7 +111,10 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 	/// </summary>
 	/// <param name="path">The path to the file to be processed.</param>
 	/// <returns>The path to the file in the output directory.</returns>
-	private string GetTargetPath(string path) => Path.GetExtension(OutPath).Length == 0
-		? Path.Join(OutPath, path.Replace(InPath, string.Empty))
-		: Path.ChangeExtension(OutPath, ".opus");
+	private string GetTargetPath(string path)
+	{
+		return Path.GetExtension(OutPath).Length == 0
+			? Path.Join(OutPath, path.Replace(InPath, string.Empty))
+			: Path.ChangeExtension(OutPath, ".opus");
+	}
 }

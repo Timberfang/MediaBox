@@ -1,15 +1,17 @@
 using ConsoleAppFramework;
+
 using Cysharp.Diagnostics;
+
 using MediaBox.Encoding;
 
 namespace MediaBox.Utilities;
 
 public static class CommandLine
 {
-	private static readonly Dictionary<string, EncoderPreset> s_encoderPresets =
+	private static readonly Dictionary<string, EncoderPreset> EncoderPresets =
 		new() { { "quality", EncoderPreset.Quality }, { "normal", EncoderPreset.Normal } };
-	private static readonly string[] s_allowedTypes = ["video", "audio", "image"];
-	private static readonly string[] s_allowedPresets = ["quality", "normal"];
+	private static readonly string[] AllowedTypes = ["video", "audio", "image"];
+	private static readonly string[] AllowedPresets = ["quality", "normal"];
 
 	public static void StartCommandline(string[] args)
 	{
@@ -36,12 +38,12 @@ public static class CommandLine
 			bool noCrop = true)
 		{
 			// [AllowedValues()] Could be used here, but it's not compatible with AOT.
-			if (!s_allowedTypes.Contains(type))
+			if (!AllowedTypes.Contains(type))
 			{
 				await Console.Error.WriteLineAsync("The type must be one of: 'video', 'audio', 'image'.");
 				return;
 			}
-			if (!s_allowedPresets.Contains(preset))
+			if (!AllowedPresets.Contains(preset))
 			{
 				await Console.Error.WriteLineAsync("The preset must be one of: 'quality', 'normal'.");
 				return;
@@ -68,19 +70,19 @@ public static class CommandLine
 				switch (type)
 				{
 					case "video":
-						VideoEncoder videoEncoder = new(path, destination, s_encoderPresets[preset.ToLowerInvariant()]);
+						VideoEncoder videoEncoder = new(path, destination, EncoderPresets[preset.ToLowerInvariant()]);
 						videoEncoder.FileEncodingStarted +=
 							(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
 						await videoEncoder.EncodeAsync(!noCrop);
 						break;
 					case "audio":
-						AudioEncoder audioEncoder = new(path, destination, s_encoderPresets[preset]);
+						AudioEncoder audioEncoder = new(path, destination, EncoderPresets[preset]);
 						audioEncoder.FileEncodingStarted +=
 							(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
 						await audioEncoder.EncodeAsync();
 						break;
 					case "image":
-						ImageEncoder imageEncoder = new(path, destination, s_encoderPresets[preset]);
+						ImageEncoder imageEncoder = new(path, destination, EncoderPresets[preset]);
 						imageEncoder.FileEncodingStarted +=
 							(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
 						await imageEncoder.EncodeAsync();

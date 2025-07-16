@@ -1,5 +1,7 @@
 using System.Text;
+
 using Cysharp.Diagnostics;
+
 using MediaBox.ExternalProcess;
 
 namespace MediaBox.Encoding;
@@ -106,7 +108,10 @@ public class VideoEncoder : IVideoEncoder
 	/// <inheritdoc />
 	/// <exception cref="FileNotFoundException">Thrown when the input path does not exist.</exception>
 	/// <exception cref="ProcessErrorException">Thrown when FFmpeg exits with a non-zero exit code.</exception>
-	public Task EncodeAsync() => EncodeAsync(true);
+	public Task EncodeAsync()
+	{
+		return EncodeAsync(true);
+	}
 
 	/// <inheritdoc cref="EncodeAsync()" />
 	/// <param name="crop">Whether to attempt to crop the video file.</param>
@@ -212,7 +217,10 @@ public class VideoEncoder : IVideoEncoder
 	/// </summary>
 	/// <param name="path">The path to the file to be processed.</param>
 	/// <returns>The path to the file in the output directory.</returns>
-	private string GetTargetPath(string path) => Path.GetExtension(OutPath).Length == 0
-		? Path.Join(OutPath, path.Replace(InPath, string.Empty))
-		: Path.ChangeExtension(OutPath, ".mkv");
+	private string GetTargetPath(string path)
+	{
+		return Path.GetExtension(OutPath).Length == 0
+			? Path.Join(OutPath, path.Replace(InPath, string.Empty))
+			: Path.ChangeExtension(OutPath, ".mkv");
+	}
 }
