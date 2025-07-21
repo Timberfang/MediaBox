@@ -1,7 +1,5 @@
 using System.Text;
 
-using Cysharp.Diagnostics;
-
 using MediaBox.ExternalProcess;
 
 namespace MediaBox.Encoding;
@@ -107,7 +105,6 @@ public class VideoEncoder : IVideoEncoder
 
 	/// <inheritdoc />
 	/// <exception cref="FileNotFoundException">Thrown when the input path does not exist.</exception>
-	/// <exception cref="ProcessErrorException">Thrown when FFmpeg exits with a non-zero exit code.</exception>
 	public Task EncodeAsync()
 	{
 		return EncodeAsync(true);

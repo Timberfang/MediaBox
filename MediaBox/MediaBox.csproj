@@ -11,13 +11,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="CliWrap" Version="3.9.0"/>
 		<PackageReference Include="ConsoleAppFramework" Version="5.5.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="NetVips" Version="3.1.0"/>
 		<PackageReference Include="NetVips.Native" Version="8.17.1"/>
-		<PackageReference Include="ProcessX" Version="1.5.6"/>
 	</ItemGroup>
 
 </Project>

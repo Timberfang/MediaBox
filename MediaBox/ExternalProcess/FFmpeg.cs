@@ -1,7 +1,7 @@
-using System.Text;
 using System.Text.RegularExpressions;
 
-using Cysharp.Diagnostics;
+using CliWrap;
+using CliWrap.Buffered;
 
 namespace MediaBox.ExternalProcess;
 
@@ -19,23 +19,14 @@ public static partial class FFmpeg
 		if (!Directory.Exists(directory) && directory != null) { Directory.CreateDirectory(directory); }
 
 		// Encode
-		try
-		{
-			await ProcessX
-				.StartAsync(
-					$"ffmpeg -loglevel error -nostdin -i \"{config.InPath}\" {config.Arguments} \"{config.OutPath}\"")
-				.WaitAsync();
-		}
-		catch (ProcessErrorException e)
-		{
-			// FFmpeg outputs to stderror whenever a file is encoded.
-			// Only the exit code indicates if it was successful or not.
-			if (e.ExitCode != 0)
-			{
-				if (File.Exists(config.OutPath)) { File.Delete(config.OutPath); }
-				throw;
-			}
-		}
+		// Only use a cancellation token for the long-running process
+		// The others finish so quickly it doesn't really matter
+		Console.WriteLine("Starting...");
+		using CancellationHandler cancellation = new();
+		await Cli.Wrap("ffmpeg")
+			.WithArguments(
+				$"-loglevel error -nostdin -i \"{config.InPath}\" {config.Arguments} \"{config.OutPath}\"")
+			.ExecuteAsync(cancellation.Token);
 	}
 
 	/// <summary>
@@ -46,11 +37,11 @@ public static partial class FFmpeg
 	/// <exception cref="InvalidDataException">Thrown when FFprobe returns an invalid duration.</exception>
 	public static async Task<int> GetDuration(string path)
 	{
-		string ffprobeOutput = await ProcessX
-			.StartAsync(
-				$"ffprobe -select_streams v:0 -show_entries format=duration -of compact=p=0:nk=1 -loglevel error \"{path}\"")
-			.FirstAsync();
-		if (!float.TryParse(ffprobeOutput, out float durationFloat))
+		BufferedCommandResult ffprobeOutput = await Cli.Wrap("ffprobe")
+			.WithArguments(
+				$"-select_streams v:0 -show_entries format=duration -of compact=p=0:nk=1 -loglevel error \"{path}\"")
+			.ExecuteBufferedAsync();
+		if (!float.TryParse(ffprobeOutput.StandardOutput, out float durationFloat))
 		{
 			throw new InvalidDataException(
 				$"{ffprobeOutput} (from file '{Path.GetFileNameWithoutExtension(path)}') is not a float");
@@ -65,11 +56,11 @@ public static partial class FFmpeg
 	/// <returns>An integer representing the number of audio channels.</returns>
 	public static async Task<int> GetChannelCount(string path)
 	{
-		string ffprobeOutput = await ProcessX
-			.StartAsync(
-				$"ffprobe -select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -loglevel error \"{path}\"")
-			.FirstAsync();
-		return int.TryParse(ffprobeOutput, out int channels) ? channels : 0;
+		BufferedCommandResult ffprobeOutput = await Cli.Wrap("ffprobe")
+			.WithArguments(
+				$"-select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -loglevel error \"{path}\"")
+			.ExecuteBufferedAsync();
+		return int.TryParse(ffprobeOutput.StandardOutput, out int channels) ? channels : 0;
 	}
 
 	/// <summary>
@@ -88,13 +79,12 @@ public static partial class FFmpeg
 	/// <returns>A string containing the crop information, in FFmpeg's format.</returns>
 	public static async Task<string> GetCroppingConfig(string path)
 	{
-		// This is necessary because ffmpeg always uses stderror with this command
 		int startTime = await GetDuration(path) < 600 ? 0 : 300;
-		(_, _, ProcessAsyncEnumerable stdError) = ProcessX.GetDualAsyncEnumerable(
-			$"ffmpeg -skip_frame nokey -hide_banner -nostats -noaccurate_seek -ss {startTime} -i \"{path}\" -frames:v 20 -vf cropdetect -an -f null -");
-		StringBuilder ffmpegOutput = new();
-		await foreach (string line in stdError) { ffmpegOutput.AppendLine(line); }
-		return CroppingRegex().Match(ffmpegOutput.ToString()).Groups[0].Value;
+		BufferedCommandResult ffmpegOutput = await Cli.Wrap("ffmpeg")
+			.WithArguments(
+				$"-skip_frame nokey -hide_banner -nostats -noaccurate_seek -ss {startTime} -i \"{path}\" -frames:v 20 -vf cropdetect -an -f null -")
+			.ExecuteBufferedAsync();
+		return CroppingRegex().Match(ffmpegOutput.StandardOutput).Groups[0].Value;
 	}
 
 	/// <summary>

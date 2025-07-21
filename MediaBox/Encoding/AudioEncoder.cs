@@ -1,7 +1,5 @@
 using System.Text;
 
-using Cysharp.Diagnostics;
-
 using MediaBox.ExternalProcess;
 
 namespace MediaBox.Encoding;
@@ -49,7 +47,6 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 
 	/// <inheritdoc />
 	/// <exception cref="FileNotFoundException">Thrown when the input path does not exist.</exception>
-	/// <exception cref="ProcessErrorException">Thrown when FFmpeg exits with a non-zero exit code.</exception>
 	public async Task EncodeAsync()
 	{
 		// Get files to process
