@@ -10,7 +10,7 @@ public class CancellationHandler : IDisposable
 		_tokenSource = new CancellationTokenSource();
 		stopping = false;
 		Console.CancelKeyPress += (_, _) => Cancel();
-		AppDomain.CurrentDomain.ProcessExit += (_, _) => Cancel();
+		AppDomain.CurrentDomain.DomainUnload += (_, _) => Cancel();
 	}
 
 	public CancellationToken Token => _tokenSource.Token;
