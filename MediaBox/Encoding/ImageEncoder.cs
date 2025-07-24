@@ -13,7 +13,17 @@ public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = 
 	/// </summary>
 	private readonly Dictionary<EncoderPreset, int> _imageQuality =
 		new() { { EncoderPreset.Quality, 95 }, { EncoderPreset.Normal, 85 } };
-
+	
+	/// <summary>
+	///     Convert image codecs from the ImageCodec enum into file extensions.
+	/// </summary>
+	private readonly Dictionary<ImageCodec, string> _extension = new()
+	{
+		{ ImageCodec.JPEG, ".jpg" },
+		{ ImageCodec.PNG, ".png" },
+		{ ImageCodec.WEBP, ".webp" }
+	};
+	
 	/// <inheritdoc />
 	public string InPath { get; set; } = inPath;
 
@@ -25,6 +35,9 @@ public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = 
 
 	/// <inheritdoc />
 	public int ImageQuality => _imageQuality[Preset];
+	
+	/// <inheritdoc />
+	public ImageCodec ImageCodec { get; set; }
 
 	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
@@ -51,7 +64,7 @@ public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = 
 		await Task.Run(() => Parallel.ForEach(files, file =>
 		{
 			// Prepare input/output paths
-			string target = Path.ChangeExtension(GetTargetPath(file), ".webp");
+			string target = Path.ChangeExtension(GetTargetPath(file), _extension[ImageCodec]);
 			if (Path.Exists(target)) { return; }
 			string? targetParent = Path.GetDirectoryName(target);
 			if (targetParent != null && !Directory.Exists(targetParent)) { Directory.CreateDirectory(targetParent); }

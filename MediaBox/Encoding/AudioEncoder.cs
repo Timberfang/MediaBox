@@ -13,25 +13,34 @@ namespace MediaBox.Encoding;
 public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal) : IAudioEncoder
 {
 	/// <summary>
-	///     The audio codec to use for encoding. It must be a valid codec for FFmpeg.
+	///     A hash set of file extensions that will be considered 'audio' files.
 	/// </summary>
-	private const string AudioCodec = "libopus";
-
+	private readonly HashSet<string> _filter = [".mp3", ".wav", ".flac", ".ogg", ".opus"];
+	
 	/// <summary>
 	///     The target bitrate for the audio stream.
 	/// </summary>
 	private readonly Dictionary<EncoderPreset, int> _audioBitrate =
 		new() { { EncoderPreset.Quality, 128000 }, { EncoderPreset.Normal, 96000 } };
-
+	
 	/// <summary>
-	///     A hash set of file extensions that will be considered 'audio' files.
+	///     Convert audio codecs from the AudioCodec enum into FFmpeg values.
 	/// </summary>
-	private readonly HashSet<string> _filter = [".mp3", ".wav", ".flac", ".ogg", ".opus"];
+	private readonly Dictionary<AudioCodec, string> _audioCodec = new()
+	{
+		{ AudioCodec.Copy, "copy" },
+		{ AudioCodec.MP3, "mp3" },
+		{ AudioCodec.AAC, "aac" },
+		{ AudioCodec.OPUS, "opus" }
+	};
 
 	/// <summary>
 	///     The bitrate FFmpeg is targeting for the audio stream.
 	/// </summary>
 	public int AudioBitrate => _audioBitrate[Preset];
+	
+	/// <inheritdoc />
+	public AudioCodec AudioCodec { get; set; }
 
 	/// <inheritdoc />
 	public string InPath { get; set; } = inPath;
@@ -62,7 +71,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		foreach (string file in files)
 		{
 			// Prepare input/output paths
-			string target = Path.ChangeExtension(GetTargetPath(file), ".opus");
+			string target = Path.ChangeExtension(GetTargetPath(file), GetNewExtension(file));
 			string? targetParent = Directory.GetParent(target)?.FullName;
 			if (Path.Exists(target)) { continue; }
 			if (!Directory.Exists(targetParent) && targetParent != null) { Directory.CreateDirectory(targetParent); }
@@ -86,9 +95,8 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		Task<int> channelCountTask = FFmpeg.GetChannelCount(path);
 
 		// Build basic arguments
-		StringBuilder
-			args = new(
-				$"-c:a {AudioCodec} -af aformat=channel_layouts=7.1|5.1|stereo"); // Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
+		// Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
+		StringBuilder args = new($"-c:a {_audioCodec[AudioCodec]} -af aformat=channel_layouts=7.1|5.1|stereo");
 
 		// Handle audio bitrate
 		int targetAudioBitrate = await channelCountTask switch
@@ -113,5 +121,17 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		return Path.GetExtension(OutPath).Length == 0
 			? Path.Join(OutPath, path.Replace(InPath, string.Empty))
 			: Path.ChangeExtension(OutPath, ".opus");
+	}
+
+	private string GetNewExtension(string path)
+	{
+		return AudioCodec switch
+		{
+			AudioCodec.Copy => Path.GetExtension(path),
+			AudioCodec.MP3 => ".mp3",
+			AudioCodec.AAC => ".aac",
+			AudioCodec.OPUS => ".opus",
+			_ => throw new ArgumentOutOfRangeException(path)
+		};
 	}
 }

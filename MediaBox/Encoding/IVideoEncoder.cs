@@ -1,6 +1,6 @@
 namespace MediaBox.Encoding;
 
-public interface IVideoEncoder : IEncoder
+public interface IVideoEncoder : IAudioEncoder
 {
 	/// <summary>
 	///     The encoder 'preset' used by FFmpeg.
@@ -25,22 +25,12 @@ public interface IVideoEncoder : IEncoder
 	int VideoQuality { get; }
 
 	/// <summary>
-	///     The bitrate FFmpeg is targeting for the audio stream.
+	///     The video codec to use for encoding.
 	/// </summary>
-	int AudioBitrate { get; }
+	VideoCodec VideoCodec { get; set; }
 
 	/// <summary>
-	///     The video codec to use for encoding. It must be a valid codec for FFmpeg.
+	///     The subtitle codec to use for encoding.
 	/// </summary>
-	string VideoCodec { get; set; }
-
-	/// <summary>
-	///     The audio codec to use for encoding. It must be a valid codec for FFmpeg.
-	/// </summary>
-	string AudioCodec { get; set; }
-
-	/// <summary>
-	///     The subtitle codec to use for encoding. It must be a valid codec for FFmpeg.
-	/// </summary>
-	string SubtitleCodec { get; set; }
+	SubtitleCodec SubtitleCodec { get; set; }
 }

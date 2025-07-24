@@ -16,6 +16,17 @@ public class VideoEncoder : IVideoEncoder
 		new() { { EncoderPreset.Quality, 128000 }, { EncoderPreset.Normal, 96000 } };
 
 	/// <summary>
+	///     Convert audio codecs from the AudioCodec enum into FFmpeg values.
+	/// </summary>
+	private readonly Dictionary<AudioCodec, string> _audioCodec = new()
+	{
+		{ AudioCodec.Copy, "copy" },
+		{ AudioCodec.MP3, "mp3" },
+		{ AudioCodec.AAC, "aac" },
+		{ AudioCodec.OPUS, "opus" }
+	};
+
+	/// <summary>
 	///     An IEnumerable containing all the files to be processed.
 	/// </summary>
 	private readonly IEnumerable<string> _files;
@@ -24,6 +35,25 @@ public class VideoEncoder : IVideoEncoder
 	///     A hash set of file extensions that will be considered 'video' files.
 	/// </summary>
 	private readonly HashSet<string> _filter = [".mkv", ".webm", ".mp4", ".m4v", ".m4a", ".avi", ".mov", ".qt", ".ogv"];
+
+	/// <summary>
+	///     Convert subtitle codecs from the SubtitleCodec enum into FFmpeg values.
+	/// </summary>
+	private readonly Dictionary<SubtitleCodec, string> _subtitleCodec = new()
+	{
+		{ SubtitleCodec.Copy, "copy" }, { SubtitleCodec.SRT, "subrip" }, { SubtitleCodec.SSA, "ass" }
+	};
+
+	/// <summary>
+	///     Convert video codecs from the VideoCodec enum into FFmpeg values.
+	/// </summary>
+	private readonly Dictionary<VideoCodec, string> _videoCodec = new()
+	{
+		{ VideoCodec.Copy, "copy" },
+		{ VideoCodec.AVC, "h264" },
+		{ VideoCodec.HEVC, "hevc" },
+		{ VideoCodec.AV1, "libsvtav1" }
+	};
 
 	/// <summary>
 	///     The encoder 'preset' to use. It must be an integer between 0 and 13 (inclusive).
@@ -74,13 +104,13 @@ public class VideoEncoder : IVideoEncoder
 	}
 
 	/// <inheritdoc />
-	public string VideoCodec { get; set; } = "libsvtav1";
+	public VideoCodec VideoCodec { get; set; } = VideoCodec.AV1;
 
 	/// <inheritdoc />
-	public string AudioCodec { get; set; } = "libopus";
+	public AudioCodec AudioCodec { get; set; } = AudioCodec.OPUS;
 
 	/// <inheritdoc />
-	public string SubtitleCodec { get; set; } = "copy";
+	public SubtitleCodec SubtitleCodec { get; set; } = SubtitleCodec.Copy;
 
 	/// <inheritdoc />
 	public int VideoPreset => _videoPreset[Preset];
@@ -117,14 +147,15 @@ public class VideoEncoder : IVideoEncoder
 		foreach (string file in _files)
 		{
 			// Prepare input/output paths
+			// TODO: Make container configurable
 			string target = Path.ChangeExtension(GetTargetPath(file), ".mkv");
 			string? targetParent = Directory.GetParent(target)?.FullName;
 			if (Path.Exists(target)) { continue; }
 			if (!Directory.Exists(targetParent) && targetParent != null) { Directory.CreateDirectory(targetParent); }
 
 			// Fix subtitle codec if needed - .mp4 files use MOV_TEXT, which other formats don't support.
-			if (SubtitleCodec.Equals("copy") && Path.GetExtension(file).Equals(".mp4") &&
-			    !Path.GetExtension(target).Equals(".mp4")) { SubtitleCodec = "srt"; }
+			if (SubtitleCodec == SubtitleCodec.Copy && Path.GetExtension(file).Equals(".mp4") &&
+			    !Path.GetExtension(target).Equals(".mp4")) { SubtitleCodec = SubtitleCodec.SRT; }
 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
@@ -186,8 +217,12 @@ public class VideoEncoder : IVideoEncoder
 
 		// Build basic arguments
 		StringBuilder args =
+			// The aformat is a workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
 			new(
-				$"-c:v {VideoCodec} -crf {VideoQuality} -preset {VideoPreset} -c:a {AudioCodec} -c:s {SubtitleCodec} -af aformat=channel_layouts=7.1|5.1|stereo"); // Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
+				$"-c:v {_videoCodec[VideoCodec]} -crf {VideoQuality} -preset {VideoPreset} " +
+				$"-c:a {_audioCodec[AudioCodec]} -c:s {_subtitleCodec[SubtitleCodec]} " +
+				"-af aformat=channel_layouts=7.1|5.1|stereo"
+			);
 
 		// Handle audio bitrate
 		int targetAudioBitrate = await channelCountTask switch
