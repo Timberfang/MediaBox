@@ -1,5 +1,3 @@
-using System.Text;
-
 using MediaBox.ExternalProcess;
 
 namespace MediaBox.Encoding;
@@ -78,7 +76,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
-			string args = await GetArgs(file);
+			string[] args = await GetArgs(file);
 			FFmpegConfig config = new(file, target, args);
 			await FFmpeg.RunAsync(config);
 		}
@@ -89,14 +87,20 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 	/// </summary>
 	/// <param name="path">The path to the file to be processed.</param>
 	/// <returns>The path to the file in the output directory.</returns>
-	private async Task<string> GetArgs(string path)
+	private async Task<string[]> GetArgs(string path)
 	{
 		// Start most expensive operations in background tasks
 		Task<int> channelCountTask = FFmpeg.GetChannelCount(path);
 
 		// Build basic arguments
 		// Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
-		StringBuilder args = new($"-c:a {_audioCodec[AudioCodec]} -af aformat=channel_layouts=7.1|5.1|stereo");
+		List<string> args =
+		[
+			"-c:a",
+			_audioCodec[AudioCodec],
+			"-af",
+			"aformat=channel_layouts=7.1|5.1|stereo"
+		];
 
 		// Handle audio bitrate
 		int targetAudioBitrate = await channelCountTask switch
@@ -105,10 +109,10 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 			>= 5 => Convert.ToInt32(AudioBitrate) * 2,
 			_ => AudioBitrate
 		};
-		args.Append($" -b:a {targetAudioBitrate}");
+		args.AddRange(["-b:a", targetAudioBitrate.ToString()]);
 
 		// Return output
-		return args.ToString();
+		return args.ToArray();
 	}
 
 	/// <summary>

@@ -22,10 +22,19 @@ public static partial class FFmpeg
 		// Only use a cancellation token for the long-running process
 		// The others finish so quickly it doesn't really matter
 		Console.WriteLine("Starting...");
+		List<string> args =
+		[
+			"-loglevel",
+			"error",
+			"-nostdin",
+			"-i",
+			config.InPath
+		];
+		args.AddRange(config.Arguments);
+		args.Add(config.OutPath);
 		using CancellationHandler cancellation = new();
 		await Cli.Wrap("ffmpeg")
-			.WithArguments(
-				$"-loglevel error -nostdin -i \"{config.InPath}\" {config.Arguments} \"{config.OutPath}\"")
+			.WithArguments(args)
 			.ExecuteAsync(cancellation.Token);
 	}
 
@@ -37,9 +46,20 @@ public static partial class FFmpeg
 	/// <exception cref="InvalidDataException">Thrown when FFprobe returns an invalid duration.</exception>
 	public static async Task<int> GetDuration(string path)
 	{
+		string[] args =
+		[
+			"-select_streams",
+			"v:0",
+			"-show_entries",
+			"format=duration",
+			"-of",
+			"compact=p=0:nk=1",
+			"-loglevel",
+			"error",
+			path
+		];
 		BufferedCommandResult ffprobeOutput = await Cli.Wrap("ffprobe")
-			.WithArguments(
-				$"-select_streams v:0 -show_entries format=duration -of compact=p=0:nk=1 -loglevel error \"{path}\"")
+			.WithArguments(args)
 			.ExecuteBufferedAsync();
 		if (!float.TryParse(ffprobeOutput.StandardOutput, out float durationFloat))
 		{
@@ -56,9 +76,20 @@ public static partial class FFmpeg
 	/// <returns>An integer representing the number of audio channels.</returns>
 	public static async Task<int> GetChannelCount(string path)
 	{
+		string[] args =
+		[
+			"-select_streams",
+			"a:0",
+			"-show_entries",
+			"stream=channels",
+			"-of",
+			"compact=p=0:nk=1",
+			"-loglevel",
+			"error",
+			path
+		];
 		BufferedCommandResult ffprobeOutput = await Cli.Wrap("ffprobe")
-			.WithArguments(
-				$"-select_streams a:0 -show_entries stream=channels -of compact=p=0:nk=1 -loglevel error \"{path}\"")
+			.WithArguments(args)
 			.ExecuteBufferedAsync();
 		return int.TryParse(ffprobeOutput.StandardOutput, out int channels) ? channels : 0;
 	}
@@ -80,9 +111,28 @@ public static partial class FFmpeg
 	public static async Task<string> GetCroppingConfig(string path)
 	{
 		int startTime = await GetDuration(path) < 600 ? 0 : 300;
+		string[] args =
+		[
+			"-skip_frame",
+			"nokey",
+			"-hide_banner",
+			"-nostats",
+			"-noaccurate_seek",
+			"-ss",
+			startTime.ToString(),
+			"-i",
+			path,
+			"-frames:v",
+			"20",
+			"-vf",
+			"cropdetect",
+			"-an",
+			"-f",
+			"null",
+			"-"
+		];
 		BufferedCommandResult ffmpegOutput = await Cli.Wrap("ffmpeg")
-			.WithArguments(
-				$"-skip_frame nokey -hide_banner -nostats -noaccurate_seek -ss {startTime} -i \"{path}\" -frames:v 20 -vf cropdetect -an -f null -")
+			.WithArguments(args)
 			.ExecuteBufferedAsync();
 		return CroppingRegex().Match(ffmpegOutput.StandardOutput).Groups[0].Value;
 	}

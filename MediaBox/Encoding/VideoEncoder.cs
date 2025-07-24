@@ -1,5 +1,3 @@
-using System.Text;
-
 using MediaBox.ExternalProcess;
 
 namespace MediaBox.Encoding;
@@ -159,7 +157,7 @@ public class VideoEncoder : IVideoEncoder
 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
-			string args = await GetArgs(file, crop);
+			string[] args = await GetArgs(file, crop);
 			FFmpegConfig config = new(file, target, args);
 			await FFmpeg.RunAsync(config);
 		}
@@ -174,7 +172,7 @@ public class VideoEncoder : IVideoEncoder
 			string extension = Path.GetExtension(file);
 			string target = $"{baseName}.silent.{extension}";
 			if (File.Exists(target)) { continue; }
-			FFmpegConfig config = new(file, target, "-c copy -an");
+			FFmpegConfig config = new(file, target, ["-c", "copy", "-an"]);
 			await FFmpeg.RunAsync(config);
 		}
 	}
@@ -192,13 +190,13 @@ public class VideoEncoder : IVideoEncoder
 			bool endTimeConfigured = endTime.Length > 0;
 
 			// Prepare arguments
-			StringBuilder args = new("-c copy");
+			List<string> args = ["-c", "copy"];
 			if (!startTimeConfigured && !endTimeConfigured) { continue; }
-			if (startTimeConfigured) { args.Append($" -ss {startTime}"); }
-			if (startTimeConfigured) { args.Append($" -to {endTime}"); }
+			if (startTimeConfigured) { args.AddRange(["-ss", startTime]); }
+			if (startTimeConfigured) { args.AddRange(["-to", endTime]); }
 
 			// Trim
-			FFmpegConfig config = new(file, target, args.ToString());
+			FFmpegConfig config = new(file, target, args);
 			await FFmpeg.RunAsync(config);
 		}
 	}
@@ -209,20 +207,29 @@ public class VideoEncoder : IVideoEncoder
 	/// <param name="path">The path to the file to be processed.</param>
 	/// <param name="crop">Whether to attempt to crop the video file.</param>
 	/// <returns>The path to the file in the output directory.</returns>
-	private async Task<string> GetArgs(string path, bool crop = true)
+	private async Task<string[]> GetArgs(string path, bool crop = true)
 	{
 		// Start most expensive operations in background tasks
 		Task<int> channelCountTask = FFmpeg.GetChannelCount(path);
 		Task<string> croppingConfigTask = FFmpeg.GetCroppingConfig(path);
 
 		// Build basic arguments
-		StringBuilder args =
-			// The aformat is a workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
-			new(
-				$"-c:v {_videoCodec[VideoCodec]} -crf {VideoQuality} -preset {VideoPreset} " +
-				$"-c:a {_audioCodec[AudioCodec]} -c:s {_subtitleCodec[SubtitleCodec]} " +
-				"-af aformat=channel_layouts=7.1|5.1|stereo"
-			);
+		// The aformat is a workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
+		List<string> args =
+		[
+			"-c:v",
+			_videoCodec[VideoCodec],
+			"-crf",
+			VideoQuality.ToString(),
+			"-preset",
+			VideoPreset.ToString(),
+			"-c:a",
+			_audioCodec[AudioCodec],
+			"-c:s",
+			_subtitleCodec[SubtitleCodec],
+			"-af",
+			"aformat=channel_layouts=7.1|5.1|stereo"
+		];
 
 		// Handle audio bitrate
 		int targetAudioBitrate = await channelCountTask switch
@@ -231,17 +238,17 @@ public class VideoEncoder : IVideoEncoder
 			>= 5 => Convert.ToInt32(AudioBitrate) * 2,
 			_ => AudioBitrate
 		};
-		args.Append($" -b:a {targetAudioBitrate}");
+		args.AddRange(["-b:a", targetAudioBitrate.ToString()]);
 
 		// Handle cropping configuration
 		if (crop)
 		{
 			string croppingConfig = await croppingConfigTask;
-			if (!string.IsNullOrEmpty(croppingConfig)) { args.Append($" -vf {croppingConfig}"); }
+			if (!string.IsNullOrEmpty(croppingConfig)) { args.AddRange(["-vf", croppingConfig]); }
 		}
 
 		// Return output
-		return args.ToString();
+		return args.ToArray();
 	}
 
 	/// <summary>
