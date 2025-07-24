@@ -11,16 +11,11 @@ namespace MediaBox.Encoding;
 public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal) : IAudioEncoder
 {
 	/// <summary>
-	///     A hash set of file extensions that will be considered 'audio' files.
-	/// </summary>
-	private readonly HashSet<string> _filter = [".mp3", ".wav", ".flac", ".ogg", ".opus"];
-	
-	/// <summary>
 	///     The target bitrate for the audio stream.
 	/// </summary>
 	private readonly Dictionary<EncoderPreset, int> _audioBitrate =
 		new() { { EncoderPreset.Quality, 128000 }, { EncoderPreset.Normal, 96000 } };
-	
+
 	/// <summary>
 	///     Convert audio codecs from the AudioCodec enum into FFmpeg values.
 	/// </summary>
@@ -31,12 +26,16 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		{ AudioCodec.AAC, "aac" },
 		{ AudioCodec.OPUS, "libopus" }
 	};
+	/// <summary>
+	///     A hash set of file extensions that will be considered 'audio' files.
+	/// </summary>
+	private readonly HashSet<string> _filter = [".mp3", ".wav", ".flac", ".ogg", ".opus"];
 
 	/// <summary>
 	///     The bitrate FFmpeg is targeting for the audio stream.
 	/// </summary>
 	public int AudioBitrate => _audioBitrate[Preset];
-	
+
 	/// <inheritdoc />
 	public AudioCodec AudioCodec { get; set; }
 

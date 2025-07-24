@@ -5,6 +5,13 @@ namespace MediaBox.Encoding;
 public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal) : IImageEncoder
 {
 	/// <summary>
+	///     Convert image codecs from the ImageCodec enum into file extensions.
+	/// </summary>
+	private readonly Dictionary<ImageCodec, string> _extension = new()
+	{
+		{ ImageCodec.JPEG, ".jpg" }, { ImageCodec.PNG, ".png" }, { ImageCodec.WEBP, ".webp" }
+	};
+	/// <summary>
 	///     A hash set of file extensions that will be considered 'image' files.
 	/// </summary>
 	private readonly HashSet<string> _filter = [".jpg", ".jpeg", ".jfif", ".png", ".heif", ".heic", ".avif"];
@@ -13,17 +20,7 @@ public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = 
 	/// </summary>
 	private readonly Dictionary<EncoderPreset, int> _imageQuality =
 		new() { { EncoderPreset.Quality, 95 }, { EncoderPreset.Normal, 85 } };
-	
-	/// <summary>
-	///     Convert image codecs from the ImageCodec enum into file extensions.
-	/// </summary>
-	private readonly Dictionary<ImageCodec, string> _extension = new()
-	{
-		{ ImageCodec.JPEG, ".jpg" },
-		{ ImageCodec.PNG, ".png" },
-		{ ImageCodec.WEBP, ".webp" }
-	};
-	
+
 	/// <inheritdoc />
 	public string InPath { get; set; } = inPath;
 
@@ -35,7 +32,7 @@ public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = 
 
 	/// <inheritdoc />
 	public int ImageQuality => _imageQuality[Preset];
-	
+
 	/// <inheritdoc />
 	public ImageCodec ImageCodec { get; set; }
 
