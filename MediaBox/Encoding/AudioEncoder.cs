@@ -29,9 +29,9 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 	private readonly Dictionary<AudioCodec, string> _audioCodec = new()
 	{
 		{ AudioCodec.Copy, "copy" },
-		{ AudioCodec.MP3, "mp3" },
+		{ AudioCodec.MP3, "libmp3lame" },
 		{ AudioCodec.AAC, "aac" },
-		{ AudioCodec.OPUS, "opus" }
+		{ AudioCodec.OPUS, "libopus" }
 	};
 
 	/// <summary>

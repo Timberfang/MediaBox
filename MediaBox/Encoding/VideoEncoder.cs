@@ -21,9 +21,9 @@ public class VideoEncoder : IVideoEncoder
 	private readonly Dictionary<AudioCodec, string> _audioCodec = new()
 	{
 		{ AudioCodec.Copy, "copy" },
-		{ AudioCodec.MP3, "mp3" },
+		{ AudioCodec.MP3, "libmp3lame" },
 		{ AudioCodec.AAC, "aac" },
-		{ AudioCodec.OPUS, "opus" }
+		{ AudioCodec.OPUS, "libopus" }
 	};
 
 	/// <summary>
@@ -50,8 +50,8 @@ public class VideoEncoder : IVideoEncoder
 	private readonly Dictionary<VideoCodec, string> _videoCodec = new()
 	{
 		{ VideoCodec.Copy, "copy" },
-		{ VideoCodec.AVC, "h264" },
-		{ VideoCodec.HEVC, "hevc" },
+		{ VideoCodec.AVC, "libx264" },
+		{ VideoCodec.HEVC, "libx265" },
 		{ VideoCodec.AV1, "libsvtav1" }
 	};
 
