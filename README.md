@@ -1,8 +1,10 @@
 # MediaBox
 
-A wrapper for [FFmpeg](https://ffmpeg.org) and [libvips](https://www.libvips.org) for video, audio, and image transcoding. Written in C#. Designed for media libraries.
+A wrapper for [FFmpeg](https://ffmpeg.org) and [libvips](https://www.libvips.org) for video, audio, and image
+transcoding. Written in C#. Designed for media libraries.
 
-> ⚠️ This project is an **early** work-in-progress. It is not stable software; features may be added or remove without warning, and bugs are to be expected. Use at your own risk.
+> ⚠️ This project is an **early** work-in-progress. It is not stable software; features may be added or remove without
+> warning, and bugs are to be expected. Use at your own risk.
 
 ## Features
 
@@ -15,7 +17,10 @@ A wrapper for [FFmpeg](https://ffmpeg.org) and [libvips](https://www.libvips.org
 
 ## Known Limitations
 
-Both FFmpeg and libvips are *very* powerful tools. MediaBox only provides a thin layer of abstraction on top of them. Since it was specifically designed for transcoding (converting between media formats), it *only* supports those features. The vast majority of FFmpeg and libvips functionality will not be accessible. Should you want access to the full feature set of either FFmpeg or libvps, you should use those directly.
+Both FFmpeg and libvips are *very* powerful tools. MediaBox only provides a thin layer of abstraction on top of them.
+Since it was specifically designed for transcoding (converting between media formats), it *only* supports those
+features. The vast majority of FFmpeg and libvips functionality will not be accessible. Should you want access to the
+full feature set of either FFmpeg or libvps, you should use those directly.
 
 Other limitations include:
 
@@ -26,7 +31,8 @@ Other limitations include:
 
 ## Installation
 
-1. Download FFmpeg and extract it to a location on your system. Add the `bin` directory of the FFmpeg installation to your system's PATH environment variable.
+1. Download FFmpeg and extract it to a location on your system. Add the `bin` directory of the FFmpeg installation to
+   your system's PATH environment variable.
 2. Download MediaBox and extract it to a location on your system. The archive includes all dependencies besides FFmpeg.
 3. Open a terminal or command prompt and navigate to the extracted MediaBox directory.
 4. Run the command `MediaBox --help` to verify that the installation was successful.
