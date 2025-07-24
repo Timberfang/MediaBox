@@ -24,8 +24,6 @@ public class CancellationHandler : IDisposable
 	public void Cancel()
 	{
 		if (stopping) { return; }
-		Console.WriteLine("Canceling...");
-		File.WriteAllText("log.txt", "Canceling...");
 		_tokenSource.Cancel();
 		stopping = true;
 	}
