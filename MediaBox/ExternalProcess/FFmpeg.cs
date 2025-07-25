@@ -21,7 +21,6 @@ public static partial class FFmpeg
 		// Encode
 		// Only use a cancellation token for the long-running process
 		// The others finish so quickly it doesn't really matter
-		Console.WriteLine("Starting...");
 		List<string> args =
 		[
 			"-loglevel",
