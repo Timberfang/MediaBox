@@ -92,13 +92,10 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		Task<int> channelCountTask = FFmpeg.GetChannelCount(path);
 
 		// Build basic arguments
-		// Workaround for a bug with opus in ffmpeg, see https://trac.ffmpeg.org/ticket/5718
 		List<string> args =
 		[
 			"-c:a",
-			_audioCodec[AudioCodec],
-			"-af",
-			"aformat=channel_layouts=7.1|5.1|stereo"
+			_audioCodec[AudioCodec]
 		];
 
 		// Handle audio bitrate
@@ -109,6 +106,9 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 			_ => AudioBitrate
 		};
 		args.AddRange(["-b:a", targetAudioBitrate.ToString()]);
+
+		// Workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
+		if (AudioCodec == AudioCodec.OPUS) { args.AddRange(["-af", "aformat=channel_layouts=7.1|5.1|stereo",]); }
 
 		// Return output
 		return args.ToArray();

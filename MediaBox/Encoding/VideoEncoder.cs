@@ -226,9 +226,7 @@ public class VideoEncoder : IVideoEncoder
 			"-c:a",
 			_audioCodec[AudioCodec],
 			"-c:s",
-			_subtitleCodec[SubtitleCodec],
-			"-af",
-			"aformat=channel_layouts=7.1|5.1|stereo"
+			_subtitleCodec[SubtitleCodec]
 		];
 
 		// Handle audio bitrate
@@ -246,6 +244,9 @@ public class VideoEncoder : IVideoEncoder
 			string croppingConfig = await croppingConfigTask;
 			if (!string.IsNullOrEmpty(croppingConfig)) { args.AddRange(["-vf", croppingConfig]); }
 		}
+
+		// Workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
+		if (AudioCodec == AudioCodec.OPUS) { args.AddRange(["-af", "aformat=channel_layouts=7.1|5.1|stereo",]); }
 
 		// Return output
 		return args.ToArray();
