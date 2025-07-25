@@ -48,6 +48,18 @@ MediaBox.exe transcode -t <type> -p <path> -d <destination>
 - `-p <path>`: The path to the input media file or directory of media files.
 - `-d <destination>`: The path to the output directory.
 
+## Sample Files
+
+Should you want to test the software on sample data, a
+[collection](https://drive.proton.me/urls/DJ3PVE9Y8G#42fEmnay6H3Z) of media is
+available. This media, created by Kevin MacLeod and the Blender Foundation, is,
+to the best of my knowledge, made available under Creative Commons licenses. For
+attribution information, consult the `ThirdPartyNotices.txt` file included with
+the media bundle.
+
+Should any author(s) of the provided media wish to have it removed, please
+notify me by email at <timberfang.code@pm.me>.
+
 ## License
 
 MediaBox is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
