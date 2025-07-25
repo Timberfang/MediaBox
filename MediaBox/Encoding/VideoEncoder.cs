@@ -66,21 +66,6 @@ public class VideoEncoder : IVideoEncoder
 		new() { { EncoderPreset.Quality, 6 }, { EncoderPreset.Normal, 10 } };
 
 	/// <summary>
-	///     The CRF (Constant Rate Factor) value to use. It must be an integer between 0 and the maximum CRF value of
-	///     the codec (usually 51).
-	/// </summary>
-	/// <remarks>
-	///     CRF is a quality setting that controls the level of compression applied to the video.
-	///     Lower CRF values result in higher quality but larger files.
-	///     Higher CRF values result in lower quality but smaller files.
-	///     CRF is a logarithmic scale, so the difference in quality between two CRF values is not linear.
-	///     The H.264/H.265 codecs allow CRF values from 0 to 51.
-	///     The AV1 codec allows CRF values from 0 to 63.
-	/// </remarks>
-	private readonly Dictionary<EncoderPreset, int> _videoQuality =
-		new() { { EncoderPreset.Quality, 27 }, { EncoderPreset.Normal, 33 } };
-
-	/// <summary>
 	///     Encodes a video file from an input path to an output path using FFmpeg.
 	/// </summary>
 	/// <param name="inPath">The path to the input video file.</param>
@@ -114,7 +99,7 @@ public class VideoEncoder : IVideoEncoder
 	public int VideoPreset => _videoPreset[Preset];
 
 	/// <inheritdoc />
-	public int VideoQuality => _videoQuality[Preset];
+	public int VideoQuality => GetVideoQuality();
 
 	/// <inheritdoc />
 	public int AudioBitrate => _audioBitrate[Preset];
@@ -153,7 +138,7 @@ public class VideoEncoder : IVideoEncoder
 
 			// Fix subtitle codec if needed - .mp4 files use MOV_TEXT, which other formats don't support.
 			if (SubtitleCodec == SubtitleCodec.Copy && Path.GetExtension(file).Equals(".mp4") &&
-			    !Path.GetExtension(target).Equals(".mp4")) { SubtitleCodec = SubtitleCodec.SRT; }
+				!Path.GetExtension(target).Equals(".mp4")) { SubtitleCodec = SubtitleCodec.SRT; }
 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
@@ -262,5 +247,28 @@ public class VideoEncoder : IVideoEncoder
 		return Path.GetExtension(OutPath).Length == 0
 			? Path.Join(OutPath, path.Replace(InPath, string.Empty))
 			: Path.ChangeExtension(OutPath, ".mkv");
+	}
+
+	/// <summary>
+	///     The CRF (Constant Rate Factor) value to use. It must be an integer between 0 and the maximum CRF value of
+	///     the codec (usually 51).
+	/// </summary>
+	/// <remarks>
+	///     CRF is a quality setting that controls the level of compression applied to the video.
+	///     Lower CRF values result in higher quality but larger files.
+	///     Higher CRF values result in lower quality but smaller files.
+	///     CRF is a logarithmic scale, so the difference in quality between two CRF values is not linear.
+	/// 	The H.264/H.265 codecs allow CRF values from 0 to 51.
+	///     The AV1 codec allows CRF values from 0 to 63.
+	/// </remarks>
+	private int GetVideoQuality()
+	{
+		bool av1Quality = VideoCodec == VideoCodec.AV1;
+		return Preset switch
+		{
+			EncoderPreset.Quality => av1Quality ? 27 : 22,
+			EncoderPreset.Normal => av1Quality ? 33 : 28,
+			_ => throw new ArgumentOutOfRangeException(nameof(Preset)),
+		};
 	}
 }
