@@ -37,7 +37,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 	public int AudioBitrate => _audioBitrate[Preset];
 
 	/// <inheritdoc />
-	public AudioCodec AudioCodec { get; set; }
+	public AudioCodec AudioCodec { get; set; } = AudioCodec.OPUS;
 
 	/// <inheritdoc />
 	public string InPath { get; set; } = inPath;
