@@ -24,10 +24,9 @@ full feature set of either FFmpeg or libvps, you should use those directly.
 
 Other limitations include:
 
-1. Codecs are currently hard-coded for AV1 video and OPUS audio.
-2. Quality/speed/size settings can only be changed via the built-in presets.
-3. Custom file names are not supported.
-4. When MediaBox exits, FFmpeg will *not* exit until it finishes with the file it's working on.
+1. Quality/speed/size settings can only be changed via the built-in presets.
+2. Custom file names are not supported.
+3. When MediaBox exits, FFmpeg will *not* exit until it finishes with the file it's working on.
 
 ## Installation
 
@@ -47,6 +46,12 @@ MediaBox.exe transcode -t <type> -p <path> -d <destination>
 - `-t <type>`: The type of media to transcode. Must be one of `video`, `audio`, or `image`.
 - `-p <path>`: The path to the input media file or directory of media files.
 - `-d <destination>`: The path to the output directory.
+
+## Contributing
+
+**Please do not submit pull requests**. This project is hosted on my private [Forgejo](https://forgejo.org) server
+and mirrored to GitHub. Any pull requests merged on GitHub will be automatically overwritten the next time Forgejo
+pushes changes to the repository.
 
 ## Sample Files
 
