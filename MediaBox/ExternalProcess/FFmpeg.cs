@@ -38,10 +38,60 @@ public static partial class FFmpeg
 	}
 
 	/// <summary>
+	///		Runs ffmpeg with the given arguments, producing no output.
+	/// </summary>
+	/// <param name="path">The path to be analyzed.</param>
+	/// <param name="preArguments">Arguments to be placed before the path.</param>
+	/// <param name="postArguments">Arguments to be placed after the path.</param>
+	/// <returns>FFmpeg's output.</returns>
+	/// <exception cref="FileNotFoundException">Thrown if the given path does not exist, or is not a file.</exception>
+	public static async Task<string> AnalyzeAsync(string path, string[] preArguments, string[] postArguments)
+	{
+		if (!File.Exists(path)) { throw new FileNotFoundException($"File at {path} does not exist"); }
+		List<string> args =
+		[
+			"-loglevel",
+			"error",
+			"-nostdin"
+		];
+		args.AddRange(preArguments);
+		args.AddRange(["-i", path]);
+		args.AddRange(postArguments);
+		args.AddRange(["-f", "null", "-"]);
+		BufferedCommandResult ffmpegOutput = await Cli.Wrap("ffmpeg")
+			.WithArguments(args)
+			.ExecuteBufferedAsync();
+		return ffmpegOutput.StandardOutput;
+	}
+
+	/// <summary>
+	/// 	Runs FFprobe with the given arguments.
+	/// </summary>
+	/// <param name="path">The path to be probed.</param>
+	/// <param name="arguments">The arguments to be passed to FFprobe.</param>
+	/// <returns>FFprobe's output.</returns>
+	/// <exception cref="FileNotFoundException">Thrown if the given path does not exist, or is not a file.</exception>
+	public static async Task<string> ProbeAsync(string path, string[] arguments)
+	{
+		if (!File.Exists(path)) { throw new FileNotFoundException($"File at {path} does not exist"); }
+		List<string> args =
+		[
+			"-loglevel",
+			"error"
+		];
+		args.AddRange(arguments);
+		args.AddRange(["-i", path]);
+		BufferedCommandResult ffprobeOutput = await Cli.Wrap("ffprobe")
+			.WithArguments(args)
+			.ExecuteBufferedAsync();
+		return ffprobeOutput.StandardOutput;
+	}
+
+	/// <summary>
 	///     Detects the duration of a video file.
 	/// </summary>
 	/// <param name="path">The path of the file to be processed.</param>
-	/// <returns>An integer representing the duration of the video in seconds.</returns>
+	/// <returns>The duration of the video in seconds.</returns>
 	/// <exception cref="InvalidDataException">Thrown when FFprobe returns an invalid duration.</exception>
 	public static async Task<int> GetDuration(string path)
 	{
@@ -52,27 +102,20 @@ public static partial class FFmpeg
 			"-show_entries",
 			"format=duration",
 			"-of",
-			"compact=p=0:nk=1",
-			"-loglevel",
-			"error",
-			path
+			"compact=p=0:nk=1"
 		];
-		BufferedCommandResult ffprobeOutput = await Cli.Wrap("ffprobe")
-			.WithArguments(args)
-			.ExecuteBufferedAsync();
-		if (!float.TryParse(ffprobeOutput.StandardOutput, out float durationFloat))
-		{
-			throw new InvalidDataException(
+		string ffprobeOutput = await ProbeAsync(path, args);
+		return float.TryParse(ffprobeOutput, out float durationFloat)
+			? (int)durationFloat
+			: throw new InvalidDataException(
 				$"{ffprobeOutput} (from file '{Path.GetFileNameWithoutExtension(path)}') is not a float");
-		}
-		return (int)durationFloat;
 	}
 
 	/// <summary>
 	///     Detects the number of audio channels in a video file.
 	/// </summary>
 	/// <param name="path">The path of the file to be processed.</param>
-	/// <returns>An integer representing the number of audio channels.</returns>
+	/// <returns>The number of audio channels.</returns>
 	public static async Task<int> GetChannelCount(string path)
 	{
 		string[] args =
@@ -83,14 +126,9 @@ public static partial class FFmpeg
 			"stream=channels",
 			"-of",
 			"compact=p=0:nk=1",
-			"-loglevel",
-			"error",
-			path
 		];
-		BufferedCommandResult ffprobeOutput = await Cli.Wrap("ffprobe")
-			.WithArguments(args)
-			.ExecuteBufferedAsync();
-		return int.TryParse(ffprobeOutput.StandardOutput, out int channels) ? channels : 0;
+		string ffprobeOutput = await ProbeAsync(path, args);
+		return int.TryParse(ffprobeOutput, out int channels) ? channels : 0;
 	}
 
 	/// <summary>
@@ -106,34 +144,28 @@ public static partial class FFmpeg
 	///     - Otherwise, it starts at the beginning (0 seconds).
 	/// </remarks>
 	/// <param name="path">The path of the file to be processed.</param>
-	/// <returns>A string containing the crop information, in FFmpeg's format.</returns>
+	/// <returns>The crop information, in FFmpeg's format.</returns>
 	public static async Task<string> GetCroppingConfig(string path)
 	{
 		int startTime = await GetDuration(path) < 600 ? 0 : 300;
-		string[] args =
+		string[] argsBefore =
 		[
 			"-skip_frame",
 			"nokey",
-			"-hide_banner",
-			"-nostats",
 			"-noaccurate_seek",
 			"-ss",
-			startTime.ToString(),
-			"-i",
-			path,
+			startTime.ToString()
+		];
+		string[] argsAfter =
+		[
 			"-frames:v",
 			"20",
 			"-vf",
 			"cropdetect",
-			"-an",
-			"-f",
-			"null",
-			"-"
+			"-an"
 		];
-		BufferedCommandResult ffmpegOutput = await Cli.Wrap("ffmpeg")
-			.WithArguments(args)
-			.ExecuteBufferedAsync();
-		return CroppingRegex().Match(ffmpegOutput.StandardOutput).Groups[0].Value;
+		string ffmpegOutput = await AnalyzeAsync(path, argsBefore, argsAfter);
+		return CroppingRegex().Match(ffmpegOutput).Groups[0].Value;
 	}
 
 	/// <summary>
