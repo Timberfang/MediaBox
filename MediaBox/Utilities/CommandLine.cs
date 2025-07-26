@@ -101,11 +101,11 @@ public static class CommandLine
 			}
 
 			// It's okay if the destination exists as a directory; the encoder will place files inside the directory.
-				if (File.Exists(destination))
-				{
-					await Console.Error.WriteLineAsync("Destination already exists: " + destination);
-					return;
-				}
+			if (File.Exists(destination))
+			{
+				await Console.Error.WriteLineAsync("Destination already exists: " + destination);
+				return;
+			}
 			try
 			{
 				if (verbose) { Console.WriteLine($"Preset is {preset}."); }
