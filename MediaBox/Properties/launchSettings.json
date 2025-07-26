@@ -1,0 +1,8 @@
+{
+    "profiles": {
+        "MyLaunchProfileName": {
+            "commandName": "Project",
+            "commandLineArgs": "transcode -t video -p ${workspaceFolder}/samples/video -d ${workspaceFolder}/samples/output/video --video-codec av1 --audio-codec opus"
+        }
+    }
+}
