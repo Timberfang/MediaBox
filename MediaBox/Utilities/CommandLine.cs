@@ -102,10 +102,28 @@ public static class CommandLine
 			}
 		});
 
-		// Parse arguments
+		// Root command
 		RootCommand rootCommand = [];
 		rootCommand.Description = "A wrapper for FFmpeg and libvips for video, audio, and image transcoding";
 		rootCommand.Add(transcodeCommand);
+		Option<bool> aboutOption = new("--about")
+		{
+			Description = "Get copyright information for MediaBox"
+		};
+		Option<bool> thirdPartyOption = new("--third-party-notices")
+		{
+			Description = "Get copyright information for bundled third-party software"
+		};
+		rootCommand.Add(aboutOption);
+		rootCommand.Add(thirdPartyOption);
+		rootCommand.SetAction(parseResult =>
+		{
+			if (parseResult.GetValue(aboutOption)) { Console.WriteLine(Licenses.Copyright); }
+			else if (parseResult.GetValue(thirdPartyOption)) { Console.WriteLine(Licenses.ThirdPartyCopyright); }
+		}
+		);
+
+		// Parse arguments
 		ParseResult parseResult = rootCommand.Parse(args);
 		return parseResult.Invoke();
 	}
