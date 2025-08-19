@@ -10,6 +10,13 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<VersionPrefix>0.0.1</VersionPrefix>
 		<VersionSuffix>alpha</VersionSuffix>
+		<AssemblyName>mediabox</AssemblyName>
+		<Authors>Timberfang</Authors>
+		<Product>MediaBox</Product>
+		<Copyright>Copyright © 2025 Timberfang</Copyright>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<RepositoryType>git</RepositoryType>
+    	<NeutralLanguage>en-US</NeutralLanguage>
 	</PropertyGroup>
 
 	<ItemGroup>
