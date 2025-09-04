@@ -1,6 +1,7 @@
 using System.CommandLine;
 
 using MediaBox.Encoding;
+using MediaBox.Metadata;
 
 namespace MediaBox.Utilities;
 
@@ -20,12 +21,12 @@ public static class CommandLine
 			Description = "Type of media",
 			Required = true
 		};
-		Option<DirectoryInfo> pathOption = new("--path", "-p")
+		Option<DirectoryInfo> transcodePathOption = new("--path", "-p")
 		{
 			Description = "Path to the media file or directory",
 			Required = true
 		};
-		Option<DirectoryInfo> destinationOption = new("-d", "--destination")
+		Option<DirectoryInfo> transcodeDestinationOption = new("-d", "--destination")
 		{
 			Description = "Path where the transcoded media will be saved",
 			Required = true
@@ -56,8 +57,8 @@ public static class CommandLine
 			DefaultValueFactory = result => ImageCodec.JPEG
 		};
 		transcodeCommand.Add(typeOption);
-		transcodeCommand.Add(pathOption);
-		transcodeCommand.Add(destinationOption);
+		transcodeCommand.Add(transcodePathOption);
+		transcodeCommand.Add(transcodeDestinationOption);
 		transcodeCommand.Add(presetOption);
 		transcodeCommand.Add(videoCodecOption);
 		transcodeCommand.Add(audioCodecOption);
@@ -65,8 +66,8 @@ public static class CommandLine
 		transcodeCommand.SetAction(async parseResult =>
 		{
 			MediaType type = parseResult.GetValue(typeOption);
-			DirectoryInfo? path = parseResult.GetValue(pathOption);
-			DirectoryInfo? destination = parseResult.GetValue(destinationOption);
+			DirectoryInfo? path = parseResult.GetValue(transcodePathOption);
+			DirectoryInfo? destination = parseResult.GetValue(transcodeDestinationOption);
 			EncoderPreset preset = parseResult.GetValue(presetOption);
 			VideoCodec videoCodec = parseResult.GetValue(videoCodecOption);
 			AudioCodec audioCodec = parseResult.GetValue(audioCodecOption);
@@ -102,10 +103,32 @@ public static class CommandLine
 			}
 		});
 
+		// Show command
+		Command showCommand = new("show", "Display metadata for media from a .json file");
+		Option<FileInfo> showPathOption = new("--path", "-p")
+		{
+			Description = "Path to the metadata file",
+			Required = true
+		};
+		showCommand.Add(showPathOption);
+		showCommand.SetAction(parseResult =>
+		{
+			FileInfo? path = parseResult.GetValue(showPathOption);
+			if (path == null)
+			{
+				Console.Error.WriteLine($"{path} cannot be null");
+				return;
+			}
+			MediaInfo mediaInfo = new();
+			mediaInfo.Load(path.FullName);
+			Console.WriteLine(mediaInfo.ToString());
+		});
+
 		// Root command
 		RootCommand rootCommand = [];
 		rootCommand.Description = "A wrapper for FFmpeg and libvips for video, audio, and image transcoding";
 		rootCommand.Add(transcodeCommand);
+		rootCommand.Add(showCommand);
 		Option<bool> aboutOption = new("--about")
 		{
 			Description = "Get copyright information for MediaBox"
