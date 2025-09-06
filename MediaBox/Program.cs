@@ -6,6 +6,9 @@ internal static class Program
 {
 	private static void Main(string[] args)
 	{
-		CommandLine.StartCommandline(args);
+		if (args.Length > 0)
+		{
+			CommandLine.StartCommandline(args);
+		}
 	}
 }
