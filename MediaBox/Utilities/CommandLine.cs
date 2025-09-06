@@ -75,17 +75,17 @@ public static class CommandLine
 			ImageCodec imageCodec = parseResult.GetValue(imageCodecOption);
 			if (path == null)
 			{
-				await Console.Error.WriteLineAsync($"{path} cannot be null");
+				await Console.Error.WriteLineAsync($"'{path}' cannot be null");
 				return;
 			}
 			if (destination == null)
 			{
-				await Console.Error.WriteLineAsync($"{destination} cannot be null");
+				await Console.Error.WriteLineAsync($"'{destination}' cannot be null");
 				return;
 			}
 			if (!path.Exists)
 			{
-				await Console.Error.WriteLineAsync($"Path at '{path} does not exist");
+				await Console.Error.WriteLineAsync($"Path at '{path.FullName}' does not exist");
 				return;
 			}
 
@@ -116,7 +116,12 @@ public static class CommandLine
 			FileInfo? path = parseResult.GetValue(showPathOption);
 			if (path == null)
 			{
-				Console.Error.WriteLine($"{path} cannot be null");
+				Console.Error.WriteLine($"'{path}' cannot be null");
+				return;
+			}
+			if (!path.Exists)
+			{
+				Console.Error.WriteLine($"Path at '{path.FullName}' does not exist");
 				return;
 			}
 			MediaInfo mediaInfo = new();
