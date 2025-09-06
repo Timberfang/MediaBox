@@ -34,27 +34,27 @@ public static class CommandLine
 		Option<EncoderPreset> presetOption = new("--preset")
 		{
 			Description = "Quality preset for the media",
-			DefaultValueFactory = result => EncoderPreset.Normal
+			DefaultValueFactory = _ => EncoderPreset.Normal
 		};
 		Option<VideoCodec> videoCodecOption = new("--video-codec")
 		{
 			Description = "The codec to use for video",
-			DefaultValueFactory = result => VideoCodec.Copy
+			DefaultValueFactory = _ => VideoCodec.Copy
 		};
 		Option<AudioCodec> audioCodecOption = new("--audio-codec")
 		{
 			Description = "The codec to use for audio",
-			DefaultValueFactory = result => AudioCodec.Copy
+			DefaultValueFactory = _ => AudioCodec.Copy
 		};
 		Option<SubtitleCodec> subtitleCodecOption = new("--subtitle-codec")
 		{
 			Description = "The codec to use for subtitles",
-			DefaultValueFactory = result => SubtitleCodec.Copy
+			DefaultValueFactory = _ => SubtitleCodec.Copy
 		};
 		Option<ImageCodec> imageCodecOption = new("--image-codec")
 		{
 			Description = "The codec to use for images",
-			DefaultValueFactory = result => ImageCodec.JPEG
+			DefaultValueFactory = _ => ImageCodec.JPEG
 		};
 		transcodeCommand.Add(typeOption);
 		transcodeCommand.Add(transcodePathOption);
