@@ -75,17 +75,17 @@ public static class CommandLine
 			ImageCodec imageCodec = parseResult.GetValue(imageCodecOption);
 			if (path == null)
 			{
-				Console.Error.WriteLine($"{path} cannot be null");
+				await Console.Error.WriteLineAsync($"{path} cannot be null");
 				return;
 			}
 			if (destination == null)
 			{
-				Console.Error.WriteLine($"{destination} cannot be null");
+				await Console.Error.WriteLineAsync($"{destination} cannot be null");
 				return;
 			}
 			if (!path.Exists)
 			{
-				Console.Error.WriteLine($"Path at '{path} does not exist");
+				await Console.Error.WriteLineAsync($"Path at '{path} does not exist");
 				return;
 			}
 
