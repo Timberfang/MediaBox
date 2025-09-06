@@ -103,17 +103,17 @@ public static class CommandLine
 			}
 		});
 
-		// Show command
-		Command showCommand = new("show", "Display metadata for media from a .json file");
-		Option<FileInfo> showPathOption = new("--path", "-p")
+		// Load command
+		Command loadCommand = new("load", "Load media information from a .json file");
+		Option<FileInfo> metadataPathOption = new("--path", "-p")
 		{
 			Description = "Path to the metadata file",
 			Required = true
 		};
-		showCommand.Add(showPathOption);
-		showCommand.SetAction(parseResult =>
+		loadCommand.Add(metadataPathOption);
+		loadCommand.SetAction(parseResult =>
 		{
-			FileInfo? path = parseResult.GetValue(showPathOption);
+			FileInfo? path = parseResult.GetValue(metadataPathOption);
 			if (path == null)
 			{
 				Console.Error.WriteLine($"'{path}' cannot be null");
@@ -124,16 +124,49 @@ public static class CommandLine
 				Console.Error.WriteLine($"Path at '{path.FullName}' does not exist");
 				return;
 			}
-			MediaInfo mediaInfo = new();
-			mediaInfo.Load(path.FullName);
+			MediaInfo mediaInfo = Import.ImportMetadata(path);
 			Console.WriteLine(mediaInfo.ToString());
+		});
+		
+		// Save command
+		Command saveCommand = new("save", "Save media information to a .json file") { metadataPathOption };
+		Option<string> metadataTitleOption = new("--title")
+		{
+			Description = "Title of the media",
+			Required = true
+		};
+		Option<string> metadataDescriptionOption = new("--description")
+		{
+			Description = "Description of the media",
+			Required = true
+		};
+		saveCommand.Add(metadataTitleOption);
+		saveCommand.Add(metadataDescriptionOption);
+		saveCommand.SetAction(parseResult =>
+		{
+			FileInfo? path = parseResult.GetValue(metadataPathOption);
+			string? title =  parseResult.GetValue(metadataTitleOption);
+			string? description = parseResult.GetValue(metadataDescriptionOption);
+			if (path == null)
+			{
+				Console.Error.WriteLine($"'{path}' cannot be null");
+				return;
+			}
+			if (path.Exists)
+			{
+				Console.Error.WriteLine($"Path at '{path.FullName}' already exists");
+				return;
+			}
+			MediaInfo mediaInfo = new(title, description);
+			Export.ExportMetadata(path, mediaInfo);
 		});
 
 		// Root command
 		RootCommand rootCommand = [];
 		rootCommand.Description = "A wrapper for FFmpeg and libvips for video, audio, and image transcoding";
 		rootCommand.Add(transcodeCommand);
-		rootCommand.Add(showCommand);
+		rootCommand.Add(loadCommand);
+		rootCommand.Add(saveCommand);
 		Option<bool> aboutOption = new("--about")
 		{
 			Description = "Get copyright information for MediaBox"
