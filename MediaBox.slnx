@@ -1,1 +1,4 @@
-﻿<Solution/>
+﻿<Solution>
+	<Project Path="src/MediaBox.CLI/MediaBox.CLI.csproj" Type="Classic C#"/>
+	<Project Path="src/MediaBox.Core/MediaBox.Core.csproj" Type="Classic C#"/>
+</Solution>

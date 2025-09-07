@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PublishAot>true</PublishAot>
+		<InvariantGlobalization>true</InvariantGlobalization>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="CliWrap" Version="3.9.0" />
+		<PackageReference Include="NetVips" Version="3.1.0" />
+		<PackageReference Include="NetVips.Native" Version="8.17.1" />
+	</ItemGroup>
+
+</Project>
