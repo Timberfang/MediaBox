@@ -2,7 +2,7 @@
     "profiles": {
 		"Show": {
             "commandName": "Project",
-            "commandLineArgs": "show -p ../samples/example.json"
+            "commandLineArgs": "load -p ../samples/example.json"
         },
 		"Transcode": {
             "commandName": "Project",
