@@ -55,6 +55,13 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 	/// <exception cref="FileNotFoundException">Thrown when the input path does not exist.</exception>
 	public async Task EncodeAsync()
 	{
+		await EncodeAsync(CancellationToken.None);
+	}
+
+	/// <inheritdoc cref="EncodeAsync()" />
+	/// <param name="cancellationToken">Token to cancel the encoding.</param>
+	public async Task EncodeAsync(CancellationToken cancellationToken)
+	{
 		// Get files to process
 		IEnumerable<string> files;
 		if (Directory.Exists(InPath))
@@ -76,7 +83,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
 			string[] args = await GetArgs(file);
-			FFmpegConfig config = new(file, target, args);
+			FFmpegConfig config = new(file, target, args, cancellationToken);
 			await FFmpeg.RunAsync(config);
 		}
 	}

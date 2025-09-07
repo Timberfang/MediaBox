@@ -19,8 +19,6 @@ public static partial class FFmpeg
 		if (!Directory.Exists(directory) && directory != null) { Directory.CreateDirectory(directory); }
 
 		// Encode
-		// Only use a cancellation token for the long-running process
-		// The others finish so quickly it doesn't really matter
 		List<string> args =
 		[
 			"-loglevel",
@@ -31,10 +29,9 @@ public static partial class FFmpeg
 		];
 		args.AddRange(config.Arguments);
 		args.Add(config.OutPath);
-		using CancellationHandler cancellation = new();
 		await Cli.Wrap("ffmpeg")
 			.WithArguments(args)
-			.ExecuteAsync(cancellation.Token);
+			.ExecuteAsync(config.CancellationToken);
 	}
 
 	/// <summary>

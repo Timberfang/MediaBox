@@ -125,7 +125,8 @@ public class VideoEncoder : IVideoEncoder
 
 	/// <inheritdoc cref="EncodeAsync()" />
 	/// <param name="crop">Whether to attempt to crop the video file.</param>
-	public async Task EncodeAsync(bool crop)
+	/// <param name="cancellationToken">Token to cancel the encoding.</param>
+	public async Task EncodeAsync(bool crop, CancellationToken cancellationToken = default)
 	{
 		foreach (string file in _files)
 		{
@@ -143,12 +144,12 @@ public class VideoEncoder : IVideoEncoder
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
 			string[] args = await GetArgs(file, crop);
-			FFmpegConfig config = new(file, target, args);
+			FFmpegConfig config = new(file, target, args, cancellationToken);
 			await FFmpeg.RunAsync(config);
 		}
 	}
 
-	public async Task SilenceVideoAsync()
+	public async Task SilenceVideoAsync(CancellationToken cancellationToken = default)
 	{
 		foreach (string file in _files)
 		{
@@ -157,12 +158,14 @@ public class VideoEncoder : IVideoEncoder
 			string extension = Path.GetExtension(file);
 			string target = $"{baseName}.silent.{extension}";
 			if (File.Exists(target)) { continue; }
-			FFmpegConfig config = new(file, target, ["-c", "copy", "-an"]);
+
+			FFmpegConfig config = new(file, target, ["-c", "copy", "-an"], cancellationToken);
 			await FFmpeg.RunAsync(config);
 		}
 	}
 
-	public async Task TrimVideoAsync(string startTime = "", string endTime = "")
+	public async Task TrimVideoAsync(string startTime = "", string endTime = "",
+		CancellationToken cancellationToken = default)
 	{
 		foreach (string file in _files)
 		{
@@ -181,7 +184,7 @@ public class VideoEncoder : IVideoEncoder
 			if (startTimeConfigured) { args.AddRange(["-to", endTime]); }
 
 			// Trim
-			FFmpegConfig config = new(file, target, args);
+			FFmpegConfig config = new(file, target, args, cancellationToken);
 			await FFmpeg.RunAsync(config);
 		}
 	}

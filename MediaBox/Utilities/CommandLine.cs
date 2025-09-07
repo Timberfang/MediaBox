@@ -8,189 +8,153 @@ namespace MediaBox.Utilities;
 public static class CommandLine
 {
 	/// <summary>
-	/// 	Parses command-line arguments.
+	///     Parses command-line arguments.
 	/// </summary>
 	/// <param name="args">Arguments passed to the program.</param>
 	/// <returns>0 if the program was successful, and 1 if it was not.</returns>
-	public static int StartCommandline(string[] args)
+	public static Task<int> StartCommandline(string[] args)
 	{
-		// Transcoding command
-		Command transcodeCommand = new("transcode", "Transcode media to a different format");
-		Option<MediaType> typeOption = new("--type", "-t")
+		// Options
+		// IO
+		Option<PathInfo> pathOption = new("--path", "-p")
 		{
-			Description = "Type of media",
-			Required = true
+			Description = "Path to the input file or directory",
+			Required = true,
+			CustomParser = result => new PathInfo(result.Tokens[0].Value),
+			Validators =
+			{
+				result =>
+				{
+					PathInfo pathInfo = new(result.Tokens[0].Value);
+					if (!pathInfo.Exists) { result.AddError($"Path at '{pathInfo.Path}' does not exist"); }
+				}
+			}
 		};
-		Option<DirectoryInfo> transcodePathOption = new("--path", "-p")
+		Option<PathInfo> destinationOption = new("-d", "--destination")
 		{
-			Description = "Path to the media file or directory",
-			Required = true
+			Description = "Path to the output file or directory",
+			Required = true,
+			CustomParser = result => new PathInfo(result.Tokens[0].Value),
+			Validators =
+			{
+				result =>
+				{
+					PathInfo pathInfo = new(result.Tokens[0].Value);
+					if (!pathInfo.IsValid)
+					{
+						result.AddError($"Path at '{pathInfo.Path}' contains invalid characters");
+					}
+					else if (!pathInfo.IsWritable) { result.AddError($"Path at '{pathInfo.Path}' is not writable"); }
+				}
+			}
 		};
-		Option<DirectoryInfo> transcodeDestinationOption = new("-d", "--destination")
-		{
-			Description = "Path where the transcoded media will be saved",
-			Required = true
-		};
+		// Transcoding
+		Option<MediaType> typeOption = new("--type", "-t") { Description = "Type of media", Required = true };
 		Option<EncoderPreset> presetOption = new("--preset")
 		{
-			Description = "Quality preset for the media",
-			DefaultValueFactory = _ => EncoderPreset.Normal
+			Description = "Quality preset for the media", DefaultValueFactory = _ => EncoderPreset.Normal
 		};
 		Option<VideoCodec> videoCodecOption = new("--video-codec")
 		{
-			Description = "The codec to use for video",
-			DefaultValueFactory = _ => VideoCodec.Copy
+			Description = "The codec to use for video", DefaultValueFactory = _ => VideoCodec.Copy
 		};
 		Option<AudioCodec> audioCodecOption = new("--audio-codec")
 		{
-			Description = "The codec to use for audio",
-			DefaultValueFactory = _ => AudioCodec.Copy
+			Description = "The codec to use for audio", DefaultValueFactory = _ => AudioCodec.Copy
 		};
 		Option<SubtitleCodec> subtitleCodecOption = new("--subtitle-codec")
 		{
-			Description = "The codec to use for subtitles",
-			DefaultValueFactory = _ => SubtitleCodec.Copy
+			Description = "The codec to use for subtitles", DefaultValueFactory = _ => SubtitleCodec.Copy
 		};
 		Option<ImageCodec> imageCodecOption = new("--image-codec")
 		{
-			Description = "The codec to use for images",
-			DefaultValueFactory = _ => ImageCodec.JPEG
+			Description = "The codec to use for images", DefaultValueFactory = _ => ImageCodec.JPEG
 		};
-		transcodeCommand.Add(typeOption);
-		transcodeCommand.Add(transcodePathOption);
-		transcodeCommand.Add(transcodeDestinationOption);
-		transcodeCommand.Add(presetOption);
-		transcodeCommand.Add(videoCodecOption);
-		transcodeCommand.Add(audioCodecOption);
-		transcodeCommand.Add(subtitleCodecOption);
-		transcodeCommand.SetAction(async parseResult =>
+		// Metadata
+		Option<string> metadataTitleOption = new("--title") { Description = "Title of the media", Required = true };
+		Option<string> metadataDescriptionOption = new("--description")
+		{
+			Description = "Description of the media", Required = true
+		};
+		// Other
+		Option<bool> aboutOption = new("--about") { Description = "Get copyright information for MediaBox" };
+		Option<bool> thirdPartyOption = new("--third-party-notices")
+		{
+			Description = "Get copyright information for bundled third-party software"
+		};
+
+		// Transcoding command
+		Command transcodeCommand = new("transcode", "Transcode media to a different format")
+		{
+			typeOption,
+			pathOption,
+			destinationOption,
+			presetOption,
+			videoCodecOption,
+			audioCodecOption,
+			subtitleCodecOption
+		};
+		transcodeCommand.SetAction((parseResult, cancellationToken) =>
 		{
 			MediaType type = parseResult.GetValue(typeOption);
-			DirectoryInfo? path = parseResult.GetValue(transcodePathOption);
-			DirectoryInfo? destination = parseResult.GetValue(transcodeDestinationOption);
+			PathInfo? pathInfo = parseResult.GetValue(pathOption);
+			PathInfo? destinationInfo = parseResult.GetValue(destinationOption);
 			EncoderPreset preset = parseResult.GetValue(presetOption);
 			VideoCodec videoCodec = parseResult.GetValue(videoCodecOption);
 			AudioCodec audioCodec = parseResult.GetValue(audioCodecOption);
 			SubtitleCodec subtitleCodec = parseResult.GetValue(subtitleCodecOption);
 			ImageCodec imageCodec = parseResult.GetValue(imageCodecOption);
-			if (path == null)
+			return type switch
 			{
-				await Console.Error.WriteLineAsync($"'{path}' cannot be null");
-				return;
-			}
-			if (destination == null)
-			{
-				await Console.Error.WriteLineAsync($"'{destination}' cannot be null");
-				return;
-			}
-			if (!path.Exists)
-			{
-				await Console.Error.WriteLineAsync($"Path at '{path.FullName}' does not exist");
-				return;
-			}
-
-			switch (type)
-			{
-				case MediaType.Video:
-					await TranscodeVideo(path, destination, preset, videoCodec, audioCodec, subtitleCodec);
-					break;
-				case MediaType.Audio:
-					await TranscodeAudio(path, destination, preset, audioCodec);
-					break;
-				case MediaType.Image:
-					await TranscodeImage(path, destination, preset, imageCodec);
-					break;
-			}
+				MediaType.Video => TranscodeVideo(pathInfo, destinationInfo, preset, videoCodec, audioCodec,
+					subtitleCodec, cancellationToken),
+				MediaType.Audio => TranscodeAudio(pathInfo, destinationInfo, preset, audioCodec, cancellationToken),
+				MediaType.Image => TranscodeImage(pathInfo, destinationInfo, preset, imageCodec),
+				_ => throw new ArgumentOutOfRangeException(type.ToString())
+			};
 		});
 
 		// Load command
-		Command loadCommand = new("load", "Load media information from a .json file");
-		Option<FileInfo> metadataPathOption = new("--path", "-p")
-		{
-			Description = "Path to the metadata file",
-			Required = true
-		};
-		loadCommand.Add(metadataPathOption);
+		Command loadCommand = new("load", "Load media information from a .json file") { pathOption };
 		loadCommand.SetAction(parseResult =>
 		{
-			FileInfo? path = parseResult.GetValue(metadataPathOption);
-			if (path == null)
-			{
-				Console.Error.WriteLine($"'{path}' cannot be null");
-				return;
-			}
-			if (!path.Exists)
-			{
-				Console.Error.WriteLine($"Path at '{path.FullName}' does not exist");
-				return;
-			}
-			MediaInfo mediaInfo = Import.ImportMetadata(path);
-			Console.WriteLine(mediaInfo.ToString());
+			PathInfo? pathInfo = parseResult.GetValue(pathOption);
+			return LoadMetadata(pathInfo);
 		});
-		
+
 		// Save command
-		Command saveCommand = new("save", "Save media information to a .json file") { metadataPathOption };
-		Option<string> metadataTitleOption = new("--title")
+		Command saveCommand = new("save", "Save media information to a .json file")
 		{
-			Description = "Title of the media",
-			Required = true
+			destinationOption, metadataTitleOption, metadataDescriptionOption
 		};
-		Option<string> metadataDescriptionOption = new("--description")
-		{
-			Description = "Description of the media",
-			Required = true
-		};
-		saveCommand.Add(metadataTitleOption);
-		saveCommand.Add(metadataDescriptionOption);
 		saveCommand.SetAction(parseResult =>
 		{
-			FileInfo? path = parseResult.GetValue(metadataPathOption);
-			string? title =  parseResult.GetValue(metadataTitleOption);
+			PathInfo? destinationInfo = parseResult.GetValue(destinationOption);
+			string? title = parseResult.GetValue(metadataTitleOption);
 			string? description = parseResult.GetValue(metadataDescriptionOption);
-			if (path == null)
-			{
-				Console.Error.WriteLine($"'{path}' cannot be null");
-				return;
-			}
-			if (path.Exists)
-			{
-				Console.Error.WriteLine($"Path at '{path.FullName}' already exists");
-				return;
-			}
-			MediaInfo mediaInfo = new(title, description);
-			Export.ExportMetadata(path, mediaInfo);
+			return SaveMetadata(destinationInfo, title, description);
 		});
 
 		// Root command
-		RootCommand rootCommand = [];
-		rootCommand.Description = "A wrapper for FFmpeg and libvips for video, audio, and image transcoding";
-		rootCommand.Add(transcodeCommand);
-		rootCommand.Add(loadCommand);
-		rootCommand.Add(saveCommand);
-		Option<bool> aboutOption = new("--about")
+		RootCommand rootCommand = new()
 		{
-			Description = "Get copyright information for MediaBox"
+			Description = "A wrapper for FFmpeg and libvips for video, audio, and image transcoding",
+			Subcommands = { transcodeCommand, loadCommand, saveCommand },
+			Options = { aboutOption, thirdPartyOption }
 		};
-		Option<bool> thirdPartyOption = new("--third-party-notices")
-		{
-			Description = "Get copyright information for bundled third-party software"
-		};
-		rootCommand.Add(aboutOption);
-		rootCommand.Add(thirdPartyOption);
 		rootCommand.SetAction(parseResult =>
-		{
-			if (parseResult.GetValue(aboutOption)) { Console.WriteLine(Licenses.Copyright); }
-			else if (parseResult.GetValue(thirdPartyOption)) { Console.WriteLine(Licenses.ThirdPartyCopyright); }
-		}
+			{
+				if (parseResult.GetValue(aboutOption)) { Console.WriteLine(Licenses.Copyright); }
+				else if (parseResult.GetValue(thirdPartyOption)) { Console.WriteLine(Licenses.ThirdPartyCopyright); }
+			}
 		);
 
 		// Parse arguments
-		ParseResult parseResult = rootCommand.Parse(args);
-		return parseResult.Invoke();
+		return rootCommand.Parse(args).InvokeAsync();
 	}
 
 	/// <summary>
-	/// 	Transcodes video from one format to another.
+	///     Transcodes video from one format to another.
 	/// </summary>
 	/// <param name="path">Path to the media file or directory.</param>
 	/// <param name="destination">Path where the transcoded media will be saved.</param>
@@ -198,72 +162,157 @@ public static class CommandLine
 	/// <param name="videoCodec">The codec to use for video.</param>
 	/// <param name="audioCodec">The codec to use for audio.</param>
 	/// <param name="subtitleCodec">The codec to use for subtitles.</param>
+	/// <param name="cancellationToken">Token to cancel the encoding.</param>
 	/// <returns>A Task object.</returns>
-	private static async Task TranscodeVideo(
-		DirectoryInfo path,
-		DirectoryInfo destination,
+	private static async Task<int> TranscodeVideo(
+		PathInfo? path,
+		PathInfo? destination,
 		EncoderPreset preset,
 		VideoCodec videoCodec,
 		AudioCodec audioCodec,
-		SubtitleCodec subtitleCodec
-		)
+		SubtitleCodec subtitleCodec,
+		CancellationToken cancellationToken
+	)
 	{
-		VideoEncoder videoEncoder = new(path.FullName, destination.FullName, preset)
+		if (path is null)
 		{
-			VideoCodec = videoCodec,
-			AudioCodec = audioCodec,
-			SubtitleCodec = subtitleCodec,
+			await Console.Error.WriteLineAsync("Path cannot be null");
+			return 1;
+		}
+
+		if (destination is null)
+		{
+			await Console.Error.WriteLineAsync("Destination cannot be null");
+			return 1;
+		}
+
+		VideoEncoder videoEncoder = new(path.Path, destination.Path, preset)
+		{
+			VideoCodec = videoCodec, AudioCodec = audioCodec, SubtitleCodec = subtitleCodec
 		};
 		videoEncoder.FileEncodingStarted +=
 			(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
-		await videoEncoder.EncodeAsync();
+		try
+		{
+			await videoEncoder.EncodeAsync(true, cancellationToken);
+			return 0;
+		}
+		catch (OperationCanceledException)
+		{
+			await Console.Error.WriteLineAsync("The operation was aborted");
+			return 1;
+		}
 	}
 
 	/// <summary>
-	/// 	Transcodes audio from one format to another.
+	///     Transcodes audio from one format to another.
 	/// </summary>
 	/// <param name="path">Path to the media file or directory.</param>
 	/// <param name="destination">Path where the transcoded media will be saved.</param>
 	/// <param name="preset">Quality preset for the media.</param>
 	/// <param name="audioCodec">The codec to use for audio.</param>
+	/// <param name="cancellationToken">Token to cancel the encoding.</param>
 	/// <returns>A Task object.</returns>
-	private static async Task TranscodeAudio(
-		DirectoryInfo path,
-		DirectoryInfo destination,
+	private static async Task<int> TranscodeAudio(
+		PathInfo? path,
+		PathInfo? destination,
 		EncoderPreset preset,
-		AudioCodec audioCodec
+		AudioCodec audioCodec,
+		CancellationToken cancellationToken
 	)
 	{
-		AudioEncoder audioEncoder = new(path.FullName, destination.FullName, preset)
+		if (path is null)
 		{
-			AudioCodec = audioCodec,
-		};
+			await Console.Error.WriteLineAsync("Path cannot be null");
+			return 1;
+		}
+
+		if (destination is null)
+		{
+			await Console.Error.WriteLineAsync("Destination cannot be null");
+			return 1;
+		}
+
+		AudioEncoder audioEncoder = new(path.Path, destination.Path, preset) { AudioCodec = audioCodec };
 		audioEncoder.FileEncodingStarted +=
 			(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
-		await audioEncoder.EncodeAsync();
+		try
+		{
+			await audioEncoder.EncodeAsync(cancellationToken);
+			return 0;
+		}
+		catch (OperationCanceledException)
+		{
+			await Console.Error.WriteLineAsync("The operation was aborted");
+			return 1;
+		}
 	}
 
 	/// <summary>
-	/// 	Transcodes image from one format to another.
+	///     Transcodes image from one format to another.
 	/// </summary>
 	/// <param name="path">Path to the media file or directory.</param>
 	/// <param name="destination">Path where the transcoded media will be saved.</param>
 	/// <param name="preset">Quality preset for the media.</param>
 	/// <param name="imageCodec">The codec to use for images.</param>
 	/// <returns>A Task object.</returns>
-	private static async Task TranscodeImage(
-		DirectoryInfo path,
-		DirectoryInfo destination,
+	private static async Task<int> TranscodeImage(
+		PathInfo? path,
+		PathInfo? destination,
 		EncoderPreset preset,
 		ImageCodec imageCodec
 	)
 	{
-		ImageEncoder imageEncoder = new(path.FullName, destination.FullName, preset)
+		if (path is null)
 		{
-			ImageCodec = imageCodec
-		};
+			await Console.Error.WriteLineAsync("Path cannot be null");
+			return 1;
+		}
+
+		if (destination is null)
+		{
+			await Console.Error.WriteLineAsync("Destination cannot be null");
+			return 1;
+		}
+
+		ImageEncoder imageEncoder = new(path.Path, destination.Path, preset) { ImageCodec = imageCodec };
 		imageEncoder.FileEncodingStarted +=
 			(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
-		await imageEncoder.EncodeAsync();
+		try
+		{
+			await imageEncoder.EncodeAsync();
+			return 0;
+		}
+		catch (OperationCanceledException)
+		{
+			await Console.Error.WriteLineAsync("The operation was aborted");
+			return 1;
+		}
+	}
+
+	private static async Task<int> LoadMetadata(PathInfo? path)
+	{
+		if (path is null)
+		{
+			await Console.Error.WriteLineAsync("Path cannot be null");
+			return 1;
+		}
+
+		MediaInfo mediaInfo = await Import.ImportMetadataAsync(path.Path);
+		Console.WriteLine(mediaInfo.ToString());
+		return 0;
+	}
+
+	private static async Task<int> SaveMetadata(PathInfo? path, string? title, string? description)
+	{
+		if (path is null)
+		{
+			await Console.Error.WriteLineAsync("Destination cannot be null");
+			return 1;
+		}
+
+		MediaInfo mediaInfo = new(title, description);
+		await Export.ExportMetadataAsync(path.Path, mediaInfo);
+		return 0;
 	}
 }
