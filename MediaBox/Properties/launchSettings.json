@@ -1,12 +1,12 @@
 {
-    "profiles": {
+	"profiles": {
 		"Show": {
-            "commandName": "Project",
-            "commandLineArgs": "load -p ../samples/example.json"
-        },
+			"commandName": "Project",
+			"commandLineArgs": "load -p ../samples/example.json"
+		},
 		"Transcode": {
-            "commandName": "Project",
-            "commandLineArgs": "transcode -t video -p ../samples/video -d ../samples/output/video --video-codec av1 --audio-codec opus"
-        }
-    }
+			"commandName": "Project",
+			"commandLineArgs": "transcode -t video -p ../samples/video -d ../samples/output/video --video-codec av1 --audio-codec opus"
+		}
+	}
 }

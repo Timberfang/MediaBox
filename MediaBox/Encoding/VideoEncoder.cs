@@ -135,11 +135,12 @@ public class VideoEncoder : IVideoEncoder
 			string target = Path.ChangeExtension(GetTargetPath(file), ".mkv");
 			string? targetParent = Directory.GetParent(target)?.FullName;
 			if (Path.Exists(target)) { continue; }
+
 			if (!Directory.Exists(targetParent) && targetParent != null) { Directory.CreateDirectory(targetParent); }
 
 			// Fix subtitle codec if needed - .mp4 files use MOV_TEXT, which other formats don't support.
 			if (SubtitleCodec == SubtitleCodec.Copy && Path.GetExtension(file).Equals(".mp4") &&
-				!Path.GetExtension(target).Equals(".mp4")) { SubtitleCodec = SubtitleCodec.SRT; }
+			    !Path.GetExtension(target).Equals(".mp4")) { SubtitleCodec = SubtitleCodec.SRT; }
 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
@@ -174,13 +175,16 @@ public class VideoEncoder : IVideoEncoder
 			string extension = Path.GetExtension(file);
 			string target = $"{baseName}.trimmed.{extension}";
 			if (File.Exists(target)) { continue; }
+
 			bool startTimeConfigured = startTime.Length > 0;
 			bool endTimeConfigured = endTime.Length > 0;
 
 			// Prepare arguments
 			List<string> args = ["-c", "copy"];
 			if (!startTimeConfigured && !endTimeConfigured) { continue; }
+
 			if (startTimeConfigured) { args.AddRange(["-ss", startTime]); }
+
 			if (startTimeConfigured) { args.AddRange(["-to", endTime]); }
 
 			// Trim
@@ -234,7 +238,7 @@ public class VideoEncoder : IVideoEncoder
 		}
 
 		// Workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
-		if (AudioCodec == AudioCodec.OPUS) { args.AddRange(["-af", "aformat=channel_layouts=7.1|5.1|stereo",]); }
+		if (AudioCodec == AudioCodec.OPUS) { args.AddRange(["-af", "aformat=channel_layouts=7.1|5.1|stereo"]); }
 
 		// Return output
 		return args.ToArray();
@@ -261,7 +265,7 @@ public class VideoEncoder : IVideoEncoder
 	///     Lower CRF values result in higher quality but larger files.
 	///     Higher CRF values result in lower quality but smaller files.
 	///     CRF is a logarithmic scale, so the difference in quality between two CRF values is not linear.
-	/// 	The H.264/H.265 codecs allow CRF values from 0 to 51.
+	///     The H.264/H.265 codecs allow CRF values from 0 to 51.
 	///     The AV1 codec allows CRF values from 0 to 63.
 	/// </remarks>
 	private int GetVideoQuality()
@@ -271,7 +275,7 @@ public class VideoEncoder : IVideoEncoder
 		{
 			EncoderPreset.Quality => av1Quality ? 27 : 22,
 			EncoderPreset.Normal => av1Quality ? 33 : 28,
-			_ => throw new ArgumentOutOfRangeException(nameof(Preset)),
+			_ => throw new ArgumentOutOfRangeException(nameof(Preset))
 		};
 	}
 }

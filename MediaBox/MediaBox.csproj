@@ -16,15 +16,15 @@
 		<Copyright>Copyright © 2025 Timberfang</Copyright>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryType>git</RepositoryType>
-    	<NeutralLanguage>en-US</NeutralLanguage>
+		<NeutralLanguage>en-US</NeutralLanguage>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CliWrap" Version="3.9.0" />
-		<PackageReference Include="NetVips" Version="3.1.0" />
-		<PackageReference Include="NetVips.Native" Version="8.17.1" />
-		<PackageReference Include="System.CommandLine" Version="2.0.0-beta6.25358.103" />
-		<PackageReference Include="System.Text.Json" Version="9.0.8" />
+		<PackageReference Include="CliWrap" Version="3.9.0"/>
+		<PackageReference Include="NetVips" Version="3.1.0"/>
+		<PackageReference Include="NetVips.Native" Version="8.17.1"/>
+		<PackageReference Include="System.CommandLine" Version="2.0.0-beta6.25358.103"/>
+		<PackageReference Include="System.Text.Json" Version="9.0.8"/>
 	</ItemGroup>
 
 </Project>

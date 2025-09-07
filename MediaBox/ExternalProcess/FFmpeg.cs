@@ -16,6 +16,7 @@ public static partial class FFmpeg
 		// Prepare input/output paths
 		string? directory = Directory.GetParent(config.InPath)?.FullName;
 		if (Path.Exists(config.OutPath)) { return; }
+
 		if (!Directory.Exists(directory) && directory != null) { Directory.CreateDirectory(directory); }
 
 		// Encode
@@ -35,7 +36,7 @@ public static partial class FFmpeg
 	}
 
 	/// <summary>
-	///		Runs ffmpeg with the given arguments, producing no output.
+	///     Runs ffmpeg with the given arguments, producing no output.
 	/// </summary>
 	/// <param name="path">The path to be analyzed.</param>
 	/// <param name="preArguments">Arguments to be placed before the path.</param>
@@ -45,6 +46,7 @@ public static partial class FFmpeg
 	public static async Task<string> AnalyzeAsync(string path, string[] preArguments, string[] postArguments)
 	{
 		if (!File.Exists(path)) { throw new FileNotFoundException($"File at {path} does not exist"); }
+
 		List<string> args =
 		[
 			"-loglevel",
@@ -62,7 +64,7 @@ public static partial class FFmpeg
 	}
 
 	/// <summary>
-	/// 	Runs FFprobe with the given arguments.
+	///     Runs FFprobe with the given arguments.
 	/// </summary>
 	/// <param name="path">The path to be probed.</param>
 	/// <param name="arguments">The arguments to be passed to FFprobe.</param>
@@ -71,6 +73,7 @@ public static partial class FFmpeg
 	public static async Task<string> ProbeAsync(string path, string[] arguments)
 	{
 		if (!File.Exists(path)) { throw new FileNotFoundException($"File at {path} does not exist"); }
+
 		List<string> args =
 		[
 			"-loglevel",
@@ -122,7 +125,7 @@ public static partial class FFmpeg
 			"-show_entries",
 			"stream=channels",
 			"-of",
-			"compact=p=0:nk=1",
+			"compact=p=0:nk=1"
 		];
 		string ffprobeOutput = await ProbeAsync(path, args);
 		return int.TryParse(ffprobeOutput, out int channels) ? channels : 0;

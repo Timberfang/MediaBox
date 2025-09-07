@@ -24,6 +24,7 @@ public class CancellationHandler : IDisposable
 	public void Cancel()
 	{
 		if (stopping) { return; }
+
 		_tokenSource.Cancel();
 		stopping = true;
 	}

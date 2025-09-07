@@ -26,6 +26,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		{ AudioCodec.AAC, "aac" },
 		{ AudioCodec.OPUS, "libopus" }
 	};
+
 	/// <summary>
 	///     A hash set of file extensions that will be considered 'audio' files.
 	/// </summary>
@@ -78,6 +79,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 			string target = Path.ChangeExtension(GetTargetPath(file), GetNewExtension(file));
 			string? targetParent = Directory.GetParent(target)?.FullName;
 			if (Path.Exists(target)) { continue; }
+
 			if (!Directory.Exists(targetParent) && targetParent != null) { Directory.CreateDirectory(targetParent); }
 
 			// Encode
@@ -115,7 +117,7 @@ public class AudioEncoder(string inPath, string outPath, EncoderPreset preset = 
 		args.AddRange(["-b:a", targetAudioBitrate.ToString()]);
 
 		// Workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
-		if (AudioCodec == AudioCodec.OPUS) { args.AddRange(["-af", "aformat=channel_layouts=7.1|5.1|stereo",]); }
+		if (AudioCodec == AudioCodec.OPUS) { args.AddRange(["-af", "aformat=channel_layouts=7.1|5.1|stereo"]); }
 
 		// Return output
 		return args.ToArray();

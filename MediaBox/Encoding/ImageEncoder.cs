@@ -11,10 +11,12 @@ public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = 
 	{
 		{ ImageCodec.JPEG, ".jpg" }, { ImageCodec.PNG, ".png" }, { ImageCodec.WEBP, ".webp" }
 	};
+
 	/// <summary>
 	///     A hash set of file extensions that will be considered 'image' files.
 	/// </summary>
 	private readonly HashSet<string> _filter = [".jpg", ".jpeg", ".jfif", ".png", ".heif", ".heic", ".avif"];
+
 	/// <summary>
 	///     The target quality setting for the image compression.
 	/// </summary>
@@ -63,6 +65,7 @@ public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = 
 			// Prepare input/output paths
 			string target = Path.ChangeExtension(GetTargetPath(file), _extension[ImageCodec]);
 			if (Path.Exists(target)) { return; }
+
 			string? targetParent = Path.GetDirectoryName(target);
 			if (targetParent != null && !Directory.Exists(targetParent)) { Directory.CreateDirectory(targetParent); }
 

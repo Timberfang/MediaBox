@@ -3,11 +3,11 @@ namespace MediaBox.Utilities;
 public class PathInfo(string path)
 {
 	public string Path { get; set; } = path;
-	public bool IsFile { get { return File.Exists(Path); }}
-	public bool IsDirectory { get { return Directory.Exists(Path); } }
-	public bool IsValid { get { return _isValid(); } }
-	public bool IsWritable { get { return _isWritable(); } }
-	public bool Exists { get { return System.IO.Path.Exists(Path); } }
+	public bool IsFile => File.Exists(Path);
+	public bool IsDirectory => Directory.Exists(Path);
+	public bool IsValid => _isValid();
+	public bool IsWritable => _isWritable();
+	public bool Exists => System.IO.Path.Exists(Path);
 
 	private bool _isValid()
 	{
@@ -21,8 +21,11 @@ public class PathInfo(string path)
 	private bool _isWritable()
 	{
 		// Best way I know of to test if a path is writable is to actually *write* to it
-		if (!IsValid) 
+		if (!IsValid)
+		{
 			return false;
+		}
+
 		// On the rare chance that the randomly-generated number already exists, re-roll it
 		Random generator = new();
 		string testPath = System.IO.Path.Join(Path, "_tmp_mediabox", generator.Next(0, 99999).ToString("D5"));
@@ -30,10 +33,13 @@ public class PathInfo(string path)
 		{
 			testPath = System.IO.Path.Join(Path, "_tmp_mediabox", generator.Next(0, 99999).ToString("D5"));
 		}
+
 		if (File.Exists(testPath))
 		{
-			throw new InvalidOperationException($"Failed to resolve conflict with file at '{testPath}' after 10 attempts");
+			throw new InvalidOperationException(
+				$"Failed to resolve conflict with file at '{testPath}' after 10 attempts");
 		}
+
 		try
 		{
 			File.WriteAllText(testPath, string.Empty);
@@ -43,6 +49,7 @@ public class PathInfo(string path)
 		{
 			return false;
 		}
+
 		return true;
 	}
 }
