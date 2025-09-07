@@ -20,12 +20,12 @@ public static class CommandLine
 		{
 			Description = "Path to the input file or directory",
 			Required = true,
-			CustomParser = result => new PathInfo(result.Tokens[0].Value),
+			CustomParser = result => new PathInfo(Path.GetFullPath(result.Tokens[0].Value)),
 			Validators =
 			{
 				result =>
 				{
-					PathInfo pathInfo = new(result.Tokens[0].Value);
+					PathInfo pathInfo = new(Path.GetFullPath(result.Tokens[0].Value));
 					if (!pathInfo.Exists) { result.AddError($"Path at '{pathInfo.Path}' does not exist"); }
 				}
 			}
@@ -34,16 +34,13 @@ public static class CommandLine
 		{
 			Description = "Path to the output file or directory",
 			Required = true,
-			CustomParser = result => new PathInfo(result.Tokens[0].Value),
+			CustomParser = result => new PathInfo(Path.GetFullPath(result.Tokens[0].Value)),
 			Validators =
 			{
 				result =>
 				{
-					PathInfo pathInfo = new(result.Tokens[0].Value);
-					if (!pathInfo.IsValid)
-					{
-						result.AddError($"Path at '{pathInfo.Path}' contains invalid characters");
-					}
+					PathInfo pathInfo = new(Path.GetFullPath(result.Tokens[0].Value));
+					if (!pathInfo.IsValid) { result.AddError($"Path at '{pathInfo.Path}' is invalid"); }
 					else if (!pathInfo.IsWritable) { result.AddError($"Path at '{pathInfo.Path}' is not writable"); }
 				}
 			}
