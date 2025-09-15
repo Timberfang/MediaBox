@@ -6,5 +6,6 @@ public enum VideoCodec
 	Copy,
 	AVC,
 	HEVC,
-	AV1
+	AV1,
+	VP9
 }
