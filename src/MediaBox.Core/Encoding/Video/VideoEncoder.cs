@@ -62,7 +62,8 @@ public class VideoEncoder : IVideoEncoder
 		{ VideoCodec.Copy, "copy" },
 		{ VideoCodec.AVC, "libx264" },
 		{ VideoCodec.HEVC, "libx265" },
-		{ VideoCodec.AV1, "libsvtav1" }
+		{ VideoCodec.AV1, "libsvtav1" },
+		{ VideoCodec.VP9, "libvpx-vp9" }
 	};
 
 	/// <summary>
@@ -147,7 +148,8 @@ public class VideoEncoder : IVideoEncoder
 		{
 			// Prepare input/output paths
 			// TODO: Make container configurable
-			string target = Path.ChangeExtension(GetTargetPath(file), ".mkv");
+			string target = Path.ChangeExtension(GetTargetPath(file), VideoCodec == VideoCodec.VP9 ? ".webm" : ".mkv");
+
 			string? targetParent = Directory.GetParent(target)?.FullName;
 			if (Path.Exists(target))
 			{
@@ -167,10 +169,39 @@ public class VideoEncoder : IVideoEncoder
 			}
 
 			// Encode
+			string[] args;
+			FFmpegConfig config;
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
-			string[] args = await GetArgs(file, crop);
-			FFmpegConfig config = new(file, target, args, cancellationToken);
+			if (VideoCodec != VideoCodec.VP9)
+			{
+				args = await GetArgs(file, crop);
+			}
+			else
+			{
+				// VP9 settings sourced from:
+				// - https://wiki.webmproject.org/ffmpeg/vp9-encoding-guide
+				// - https://www.reddit.com/r/AV1/comments/k7colv/encoder_tuning_part_1_tuning_libvpxvp9_be_more/
+				string nullPath = Environment.OSVersion.Platform switch
+				{
+					PlatformID.Win32NT => "NUL",
+					PlatformID.Unix => "/dev/null",
+					_ => throw new PlatformNotSupportedException(Environment.OSVersion.Platform.ToString())
+				};
+				args = await GetArgsVp9(file, crop);
+				config = new FFmpegConfig(file, nullPath, args, cancellationToken);
+				await FFmpeg.RunAsync(config);
+				args = await GetArgsVp9(file, crop, true);
+			}
+
+			config = new FFmpegConfig(file, target, args, cancellationToken);
 			await FFmpeg.RunAsync(config);
+
+			// Cleanup
+			string ffmpegLogPath = Path.Join(Directory.GetCurrentDirectory(), "ffmpeg2pass-0.log");
+			if (VideoCodec == VideoCodec.VP9 && File.Exists(ffmpegLogPath))
+			{
+				File.Delete(ffmpegLogPath);
+			}
 		}
 	}
 
@@ -290,6 +321,87 @@ public class VideoEncoder : IVideoEncoder
 	}
 
 	/// <summary>
+	///     Builds an array of arguments to pass to FFmpeg, using the two-pass method for VP9.
+	/// </summary>
+	/// <param name="path">The path to the file to be processed.</param>
+	/// <param name="crop">Whether to attempt to crop the video file.</param>
+	/// <param name="secondPass">Whether to return the arguments for the first or second pass.</param>
+	/// <returns>The path to the file in the output directory.</returns>
+	private async Task<string[]> GetArgsVp9(string path, bool crop = true, bool secondPass = false)
+	{
+		// Start most expensive operations in background tasks
+		Task<string> croppingConfigTask = FFmpeg.GetCroppingConfig(path);
+
+		// Build basic arguments
+		// VP9 encoding uses two passes, see https://trac.ffmpeg.org/wiki/Encode/VP9#twopass
+		// The aformat is a workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
+		// -row-mt is a multi-threading optimization, see https://trac.ffmpeg.org/wiki/Encode/VP9#rowmt
+		List<string> args;
+		if (!secondPass)
+		{
+			args =
+			[
+				"-c:v",
+				"libvpx-vp9",
+				"-b:v",
+				"0",
+				"-crf",
+				VideoQuality.ToString(),
+				"-pass",
+				"1",
+				"-an",
+				"-f",
+				"null",
+				"-row-mt",
+				"1"
+			];
+		}
+		else
+		{
+			Task<int> channelCountTask = FFmpeg.GetChannelCount(path);
+			args =
+			[
+				"-c:v",
+				"libvpx-vp9",
+				"-b:v",
+				"0",
+				"-crf",
+				VideoQuality.ToString(),
+				"-preset",
+				VideoPreset.ToString(),
+				"-pass",
+				"2",
+				"-c:a",
+				"libopus",
+				"-row-mt",
+				"1"
+			];
+
+			// Handle audio bitrate
+			// The '-af' is a workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
+			int targetAudioBitrate = await channelCountTask switch
+			{
+				>= 7 => Convert.ToInt32(AudioBitrate * 2.5),
+				>= 5 => Convert.ToInt32(AudioBitrate) * 2,
+				_ => AudioBitrate
+			};
+			args.AddRange(["-b:a", targetAudioBitrate.ToString(), "-af", "aformat=channel_layouts=7.1|5.1|stereo"]);
+		}
+
+		// Handle cropping configuration
+		if (crop)
+		{
+			string croppingConfig = await croppingConfigTask;
+			if (!string.IsNullOrEmpty(croppingConfig))
+			{
+				args.AddRange(["-vf", croppingConfig]);
+			}
+		}
+
+		return args.ToArray();
+	}
+
+	/// <summary>
 	///     Replicates the directory structure of the input path in the output path.
 	/// </summary>
 	/// <param name="path">The path to the file to be processed.</param>
@@ -310,10 +422,12 @@ public class VideoEncoder : IVideoEncoder
 	///     CRF is a logarithmic scale, so the difference in quality between two CRF values is not linear.
 	///     The H.264/H.265 codecs allow CRF values from 0 to 51.
 	///     The AV1 codec allows CRF values from 0 to 63.
+	///     The VP9 codec allows CRF values from 4 to 63.
 	/// </remarks>
 	private int GetVideoQuality()
 	{
-		bool av1Quality = VideoCodec == VideoCodec.AV1;
+		// See https://developers.google.com/media/vp9/settings/vod#quality VP9 CRF recommendations
+		bool av1Quality = VideoCodec is VideoCodec.AV1 or VideoCodec.VP9;
 		return Preset switch
 		{
 			EncoderPreset.Quality => av1Quality ? 27 : 22,
