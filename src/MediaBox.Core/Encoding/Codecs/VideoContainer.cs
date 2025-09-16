@@ -1,10 +1,9 @@
 namespace MediaBox.Core.Encoding.Codecs;
 
-public enum SubtitleCodec
+public enum VideoContainer
 {
 	// ReSharper disable InconsistentNaming
-	Copy,
-	SRT,
-	SSA,
-	MOVTEXT
+	MP4,
+	MKV,
+	WEBM
 }
