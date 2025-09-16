@@ -3,18 +3,16 @@ using NetVips;
 
 namespace MediaBox.Core.Encoding.Image;
 
-public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal) : IImageEncoder
+public class ImageEncoder : IImageEncoder
 {
+	// IO
 	/// <summary>
-	///     Convert image codecs from the ImageCodec enum into file extensions.
+	///     Files to be processed.
 	/// </summary>
-	private readonly Dictionary<ImageCodec, string> _extension = new()
-	{
-		{ ImageCodec.JPEG, ".jpg" }, { ImageCodec.PNG, ".png" }, { ImageCodec.WEBP, ".webp" }
-	};
+	private readonly IEnumerable<string> _files;
 
 	/// <summary>
-	///     A hash set of file extensions that will be considered 'image' files.
+	///     File extensions that will be considered 'image' files.
 	/// </summary>
 	private readonly HashSet<string> _filter = new(StringComparer.OrdinalIgnoreCase)
 	{
@@ -28,59 +26,78 @@ public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = 
 		".avif"
 	};
 
+	// Image settings
 	/// <summary>
 	///     The target quality setting for the image compression.
 	/// </summary>
 	private readonly Dictionary<EncoderPreset, int> _imageQuality =
 		new() { { EncoderPreset.Quality, 95 }, { EncoderPreset.Normal, 85 } };
 
-	/// <inheritdoc />
-	public string InPath { get; set; } = inPath;
+	// Constructor
+	/// <summary>
+	///     Encodes an image file from an input path to an output path using FFmpeg.
+	/// </summary>
+	/// <param name="inPath">The path to the input image file.</param>
+	/// <param name="outPath">The path to save the encoded image file.</param>
+	/// <param name="preset">The encoding preset to use: "Quality", "Normal", or "Fast".</param>
+	public ImageEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal)
+	{
+		InPath = inPath;
+		OutPath = outPath;
+		Preset = preset;
 
-	/// <inheritdoc />
-	public string OutPath { get; set; } = outPath;
-
-	/// <inheritdoc />
-	public EncoderPreset Preset { get; set; } = preset;
-
-	/// <inheritdoc />
-	public int ImageQuality => _imageQuality[Preset];
+		if (Directory.Exists(InPath))
+		{
+			_files = Directory.EnumerateFiles(InPath, "*", SearchOption.AllDirectories)
+				.Where(f => _filter.Contains(Path.GetExtension(f)));
+		}
+		else if (File.Exists(InPath))
+		{
+			_files = [InPath];
+		}
+		else
+		{
+			throw new FileNotFoundException(InPath);
+		}
+	}
 
 	/// <inheritdoc />
 	public ImageCodec ImageCodec { get; set; }
 
+	// Shared
+	/// <inheritdoc />
+	public string InPath { get; set; }
+
+	/// <inheritdoc />
+	public string OutPath { get; set; }
+
+	/// <inheritdoc />
+	public EncoderPreset Preset { get; set; }
+
+	// Encoding
 	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
 
 	/// <inheritdoc />
 	public async Task EncodeAsync()
 	{
-		// Get files to process
-		IEnumerable<string> files;
-		if (Directory.Exists(InPath))
-		{
-			files = Directory.EnumerateFiles(InPath, "*", SearchOption.AllDirectories)
-				.Where(f => _filter.Contains(Path.GetExtension(f)));
-		}
-		else if (File.Exists(InPath))
-		{
-			files = [InPath];
-		}
-		else
-		{
-			throw new FileNotFoundException(InPath);
-		}
-
-		// Prepare configuration
-		VOption imageOptions = new() { { "Q", ImageQuality } };
+		// Build configuration
+		VOption imageOptions = new() { { "Q", _imageQuality[Preset] } };
 
 		// Encode
 		// Task.Run(() => Parallel.ForEach(..) is faster than creating one task per item.
 		// See https://stackoverflow.com/a/19103047
-		await Task.Run(() => Parallel.ForEach(files, file =>
+		await Task.Run(() => Parallel.ForEach(_files, file =>
 		{
-			// Prepare input/output paths
-			string target = Path.ChangeExtension(GetTargetPath(file), _extension[ImageCodec]);
+			// Set up paths
+			string extension = ImageCodec switch
+			{
+				ImageCodec.JPEG => ".jpg",
+				ImageCodec.PNG => ".png",
+				ImageCodec.WEBP => ".webp",
+				_ => throw new ArgumentOutOfRangeException(nameof(ImageCodec))
+			};
+			string target = Path.ChangeExtension(GetTargetPath(file), extension);
 			if (Path.Exists(target))
 			{
 				return;
@@ -92,7 +109,7 @@ public class ImageEncoder(string inPath, string outPath, EncoderPreset preset = 
 				Directory.CreateDirectory(targetParent);
 			}
 
-			// Encode files
+			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
 			using NetVips.Image image = NetVips.Image.NewFromFile(file);
 			image.WriteToFile(target, imageOptions);
