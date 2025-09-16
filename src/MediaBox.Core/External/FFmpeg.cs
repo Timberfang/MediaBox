@@ -1,16 +1,51 @@
 using System.Text.RegularExpressions;
 using CliWrap;
 using CliWrap.Buffered;
+using MediaBox.Core.Encoding.Codecs;
 
 namespace MediaBox.Core.External;
 
 public static partial class FFmpeg
 {
 	/// <summary>
+	///     Convert audio codec settings into FFmpeg values.
+	/// </summary>
+	internal static readonly Dictionary<AudioCodec, string> AudioCodecs = new()
+	{
+		{ AudioCodec.Copy, "copy" },
+		{ AudioCodec.MP3, "libmp3lame" },
+		{ AudioCodec.AAC, "aac" },
+		{ AudioCodec.OPUS, "libopus" }
+	};
+
+	/// <summary>
+	///     Convert video codec settings into FFmpeg values.
+	/// </summary>
+	internal static readonly Dictionary<VideoCodec, string> VideoCodecs = new()
+	{
+		{ VideoCodec.Copy, "copy" },
+		{ VideoCodec.AVC, "libx264" },
+		{ VideoCodec.HEVC, "libx265" },
+		{ VideoCodec.AV1, "libsvtav1" },
+		{ VideoCodec.VP9, "libvpx-vp9" }
+	};
+
+	/// <summary>
+	///     Convert subtitle codec settings into FFmpeg values.
+	/// </summary>
+	internal static readonly Dictionary<SubtitleCodec, string> SubtitleCodecs = new()
+	{
+		{ SubtitleCodec.Copy, "copy" },
+		{ SubtitleCodec.SRT, "subrip" },
+		{ SubtitleCodec.SSA, "ass" },
+		{ SubtitleCodec.MOVTEXT, "MOV_TEXT" }
+	};
+
+	/// <summary>
 	///     Runs FFmpeg with the given configuration.
 	/// </summary>
 	/// <param name="config">A configuration object for FFmpeg.</param>
-	public static async Task RunAsync(FFmpegConfig config)
+	internal static async Task RunAsync(FFmpegConfig config)
 	{
 		// Prepare input/output paths
 		string? directory = Directory.GetParent(config.InPath)?.FullName;
@@ -48,7 +83,7 @@ public static partial class FFmpeg
 	/// <param name="postArguments">Arguments to be placed after the path.</param>
 	/// <returns>FFmpeg's output.</returns>
 	/// <exception cref="FileNotFoundException">Thrown if the given path does not exist, or is not a file.</exception>
-	public static async Task<string> AnalyzeAsync(string path, string[] preArguments, string[] postArguments)
+	private static async Task<string> AnalyzeAsync(string path, string[] preArguments, string[] postArguments)
 	{
 		if (!File.Exists(path))
 		{
@@ -78,7 +113,7 @@ public static partial class FFmpeg
 	/// <param name="arguments">The arguments to be passed to FFprobe.</param>
 	/// <returns>FFprobe's output.</returns>
 	/// <exception cref="FileNotFoundException">Thrown if the given path does not exist, or is not a file.</exception>
-	public static async Task<string> ProbeAsync(string path, string[] arguments)
+	private static async Task<string> ProbeAsync(string path, string[] arguments)
 	{
 		if (!File.Exists(path))
 		{

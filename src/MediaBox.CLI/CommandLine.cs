@@ -85,6 +85,11 @@ public static class CommandLine
 			Description = "The codec to use for images",
 			DefaultValueFactory = _ => ImageCodec.JPEG
 		};
+		Option<VideoContainer> videoContainerOption = new("--video-container")
+		{
+			Description = "The container to use for video",
+			DefaultValueFactory = _ => VideoContainer.MKV
+		};
 		// Other
 		Option<bool> aboutOption = new("--about") { Description = "Get copyright information for MediaBox" };
 		Option<bool> thirdPartyOption = new("--third-party-notices")
@@ -102,6 +107,7 @@ public static class CommandLine
 			videoCodecOption,
 			audioCodecOption,
 			subtitleCodecOption,
+			videoContainerOption,
 			imageCodecOption
 		};
 		transcodeCommand.SetAction((parseResult, cancellationToken) =>
@@ -114,6 +120,7 @@ public static class CommandLine
 			AudioCodec audioCodec = parseResult.GetValue(audioCodecOption);
 			SubtitleCodec subtitleCodec = parseResult.GetValue(subtitleCodecOption);
 			ImageCodec imageCodec = parseResult.GetValue(imageCodecOption);
+			VideoContainer videoContainer = parseResult.GetValue(videoContainerOption);
 			if (pathInfo is null)
 			{
 				return Console.Error.WriteLineAsync("Path cannot be null");
@@ -132,7 +139,7 @@ public static class CommandLine
 			return type switch
 			{
 				MediaType.Video => TranscodeVideo(pathInfo, destinationInfo, preset, videoCodec, audioCodec,
-					subtitleCodec, cancellationToken),
+					subtitleCodec, videoContainer, cancellationToken),
 				MediaType.Audio => TranscodeAudio(pathInfo, destinationInfo, preset, audioCodec, cancellationToken),
 				MediaType.Image => TranscodeImage(pathInfo, destinationInfo, preset, imageCodec),
 				MediaType.Other => Console.Error.WriteLineAsync("Media type is not supported"),
@@ -175,6 +182,7 @@ public static class CommandLine
 	/// <param name="videoCodec">The codec to use for video.</param>
 	/// <param name="audioCodec">The codec to use for audio.</param>
 	/// <param name="subtitleCodec">The codec to use for subtitles.</param>
+	/// <param name="videoContainer">The container to use for video.</param>
 	/// <param name="cancellationToken">Token to cancel the encoding.</param>
 	/// <returns>A Task object.</returns>
 	private static async Task<int> TranscodeVideo(
@@ -184,6 +192,7 @@ public static class CommandLine
 		VideoCodec videoCodec,
 		AudioCodec audioCodec,
 		SubtitleCodec subtitleCodec,
+		VideoContainer videoContainer,
 		CancellationToken cancellationToken
 	)
 	{
@@ -191,7 +200,8 @@ public static class CommandLine
 		{
 			VideoCodec = videoCodec,
 			AudioCodec = audioCodec,
-			SubtitleCodec = subtitleCodec
+			SubtitleCodec = subtitleCodec,
+			VideoContainer = videoContainer
 		};
 		videoEncoder.FileEncodingStarted +=
 			(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
