@@ -90,6 +90,10 @@ public static class CommandLine
 			Description = "The container to use for video",
 			DefaultValueFactory = _ => VideoContainer.MKV
 		};
+		Option<bool> forceOption = new("--force")
+		{
+			Description = "Encode files even if their file extension already matches the target."
+		};
 		// Other
 		Option<bool> aboutOption = new("--about") { Description = "Get copyright information for MediaBox" };
 		Option<bool> thirdPartyOption = new("--third-party-notices")
@@ -121,6 +125,7 @@ public static class CommandLine
 			SubtitleCodec subtitleCodec = parseResult.GetValue(subtitleCodecOption);
 			ImageCodec imageCodec = parseResult.GetValue(imageCodecOption);
 			VideoContainer videoContainer = parseResult.GetValue(videoContainerOption);
+			bool force = parseResult.GetValue(forceOption);
 			if (pathInfo is null)
 			{
 				return Console.Error.WriteLineAsync("Path cannot be null");
@@ -139,9 +144,10 @@ public static class CommandLine
 			return type switch
 			{
 				MediaType.Video => TranscodeVideo(pathInfo, destinationInfo, preset, videoCodec, audioCodec,
-					subtitleCodec, videoContainer, cancellationToken),
-				MediaType.Audio => TranscodeAudio(pathInfo, destinationInfo, preset, audioCodec, cancellationToken),
-				MediaType.Image => TranscodeImage(pathInfo, destinationInfo, preset, imageCodec),
+					subtitleCodec, videoContainer, force, cancellationToken),
+				MediaType.Audio => TranscodeAudio(pathInfo, destinationInfo, preset, audioCodec, force,
+					cancellationToken),
+				MediaType.Image => TranscodeImage(pathInfo, destinationInfo, preset, imageCodec, force),
 				MediaType.Other => Console.Error.WriteLineAsync("Media type is not supported"),
 				MediaType.Unknown => Console.Error.WriteLineAsync(
 					"Failed to detect media type, try adding the --type parameter"),
@@ -183,6 +189,7 @@ public static class CommandLine
 	/// <param name="audioCodec">The codec to use for audio.</param>
 	/// <param name="subtitleCodec">The codec to use for subtitles.</param>
 	/// <param name="videoContainer">The container to use for video.</param>
+	/// <param name="force">Encode files even if their file extension already matches the target.</param>
 	/// <param name="cancellationToken">Token to cancel the encoding.</param>
 	/// <returns>A Task object.</returns>
 	private static async Task<int> TranscodeVideo(
@@ -193,6 +200,7 @@ public static class CommandLine
 		AudioCodec audioCodec,
 		SubtitleCodec subtitleCodec,
 		VideoContainer videoContainer,
+		bool force,
 		CancellationToken cancellationToken
 	)
 	{
@@ -201,7 +209,8 @@ public static class CommandLine
 			VideoCodec = videoCodec,
 			AudioCodec = audioCodec,
 			SubtitleCodec = subtitleCodec,
-			VideoContainer = videoContainer
+			VideoContainer = videoContainer,
+			Force = force
 		};
 		videoEncoder.FileEncodingStarted +=
 			(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
@@ -224,6 +233,7 @@ public static class CommandLine
 	/// <param name="destination">Path where the transcoded media will be saved.</param>
 	/// <param name="preset">Quality preset for the media.</param>
 	/// <param name="audioCodec">The codec to use for audio.</param>
+	/// <param name="force">Encode files even if their file extension already matches the target.</param>
 	/// <param name="cancellationToken">Token to cancel the encoding.</param>
 	/// <returns>A Task object.</returns>
 	private static async Task<int> TranscodeAudio(
@@ -231,10 +241,11 @@ public static class CommandLine
 		PathInfo destination,
 		EncoderPreset preset,
 		AudioCodec audioCodec,
+		bool force,
 		CancellationToken cancellationToken
 	)
 	{
-		AudioEncoder audioEncoder = new(path.Path, destination.Path, preset) { AudioCodec = audioCodec };
+		AudioEncoder audioEncoder = new(path.Path, destination.Path, preset) { AudioCodec = audioCodec, Force = force };
 		audioEncoder.FileEncodingStarted +=
 			(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
 		try
@@ -256,15 +267,17 @@ public static class CommandLine
 	/// <param name="destination">Path where the transcoded media will be saved.</param>
 	/// <param name="preset">Quality preset for the media.</param>
 	/// <param name="imageCodec">The codec to use for images.</param>
+	/// <param name="force">Encode files even if their file extension already matches the target.</param>
 	/// <returns>A Task object.</returns>
 	private static async Task<int> TranscodeImage(
 		PathInfo path,
 		PathInfo destination,
 		EncoderPreset preset,
-		ImageCodec imageCodec
+		ImageCodec imageCodec,
+		bool force
 	)
 	{
-		ImageEncoder imageEncoder = new(path.Path, destination.Path, preset) { ImageCodec = imageCodec };
+		ImageEncoder imageEncoder = new(path.Path, destination.Path, preset) { ImageCodec = imageCodec, Force = force };
 		imageEncoder.FileEncodingStarted +=
 			(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
 		try

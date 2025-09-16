@@ -150,6 +150,9 @@ public class VideoEncoder : IVideoEncoder
 	/// <inheritdoc />
 	public SubtitleCodec SubtitleCodec { get; set; } = SubtitleCodec.Copy;
 
+	/// <inheritdoc />
+	public bool Force { get; set; }
+
 	// Encoding
 	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
@@ -198,6 +201,11 @@ public class VideoEncoder : IVideoEncoder
 			// Set up paths
 			string target = Path.ChangeExtension(GetTargetPath(file), extension);
 			if (Path.Exists(target))
+			{
+				continue;
+			}
+
+			if (!Force && Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase))
 			{
 				continue;
 			}

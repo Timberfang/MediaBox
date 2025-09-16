@@ -74,6 +74,9 @@ public class ImageEncoder : IImageEncoder
 	/// <inheritdoc />
 	public EncoderPreset Preset { get; set; }
 
+	/// <inheritdoc />
+	public bool Force { get; set; }
+
 	// Encoding
 	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
@@ -99,6 +102,11 @@ public class ImageEncoder : IImageEncoder
 			};
 			string target = Path.ChangeExtension(GetTargetPath(file), extension);
 			if (Path.Exists(target))
+			{
+				return;
+			}
+
+			if (!Force && Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase))
 			{
 				return;
 			}

@@ -21,10 +21,14 @@ public interface IEncoder
 	EncoderPreset Preset { get; set; }
 
 	/// <summary>
+	///     When true, re-encode files that are known to already match the target codec or container.
+	/// </summary>
+	bool Force { get; set; }
+
+	/// <summary>
 	///     An event that's raised whenever encoding starts on a new file.
 	/// </summary>
 	event EventHandler<string>? FileEncodingStarted;
-
 
 	/// <summary>
 	///     Encodes all valid files in the input path to the output path.
