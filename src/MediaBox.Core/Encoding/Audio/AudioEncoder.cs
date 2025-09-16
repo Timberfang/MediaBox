@@ -79,6 +79,9 @@ public class AudioEncoder : IAudioEncoder
 	/// <inheritdoc />
 	public EncoderPreset Preset { get; set; }
 
+	/// <inheritdoc />
+	public bool Force { get; set; }
+
 	// Encoding
 	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
@@ -109,6 +112,11 @@ public class AudioEncoder : IAudioEncoder
 			};
 			string target = Path.ChangeExtension(GetTargetPath(file), extension);
 			if (Path.Exists(target))
+			{
+				continue;
+			}
+
+			if (!Force && Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase))
 			{
 				continue;
 			}
