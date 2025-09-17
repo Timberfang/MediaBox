@@ -4,7 +4,6 @@ using MediaBox.Core.Encoding.Audio;
 using MediaBox.Core.Encoding.Codecs;
 using MediaBox.Core.Encoding.Image;
 using MediaBox.Core.Encoding.Video;
-using MediaBox.Core.Metadata;
 using MediaBox.Core.Utility;
 
 namespace MediaBox.CLI;
@@ -55,11 +54,6 @@ public static class CommandLine
 			}
 		};
 		// Transcoding
-		Option<MediaType> typeOption = new("--type", "-t")
-		{
-			Description = "Type of media",
-			DefaultValueFactory = _ => MediaType.Unknown
-		};
 		Option<EncoderPreset> presetOption = new("--preset")
 		{
 			Description = "Quality preset for the media",
@@ -101,31 +95,29 @@ public static class CommandLine
 			Description = "Get copyright information for bundled third-party software"
 		};
 
-		// Transcoding command
-		Command transcodeCommand = new("transcode", "Transcode media to a different format")
+		// Transcoding commands
+		Command videoCommand = new("video", "transcode video to a different format")
 		{
 			pathArgument,
 			destinationArgument,
-			typeOption,
 			presetOption,
 			videoCodecOption,
 			audioCodecOption,
 			subtitleCodecOption,
 			videoContainerOption,
-			imageCodecOption
+			forceOption
 		};
-		transcodeCommand.SetAction((parseResult, cancellationToken) =>
+		videoCommand.SetAction((parseResult, cancellationToken) =>
 		{
-			MediaType type = parseResult.GetValue(typeOption);
 			PathInfo? pathInfo = parseResult.GetValue(pathArgument);
 			PathInfo? destinationInfo = parseResult.GetValue(destinationArgument);
 			EncoderPreset preset = parseResult.GetValue(presetOption);
 			VideoCodec videoCodec = parseResult.GetValue(videoCodecOption);
 			AudioCodec audioCodec = parseResult.GetValue(audioCodecOption);
 			SubtitleCodec subtitleCodec = parseResult.GetValue(subtitleCodecOption);
-			ImageCodec imageCodec = parseResult.GetValue(imageCodecOption);
 			VideoContainer videoContainer = parseResult.GetValue(videoContainerOption);
 			bool force = parseResult.GetValue(forceOption);
+
 			if (pathInfo is null)
 			{
 				return Console.Error.WriteLineAsync("Path cannot be null");
@@ -136,24 +128,71 @@ public static class CommandLine
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
-			if (type == MediaType.Unknown)
+			return TranscodeVideo(pathInfo, destinationInfo, preset, videoCodec, audioCodec,
+				subtitleCodec, videoContainer, force, cancellationToken);
+		});
+		Command audioCommand = new("audio", "transcode audio to a different format")
+		{
+			pathArgument,
+			destinationArgument,
+			presetOption,
+			audioCodecOption,
+			forceOption
+		};
+		audioCommand.SetAction((parseResult, cancellationToken) =>
+		{
+			PathInfo? pathInfo = parseResult.GetValue(pathArgument);
+			PathInfo? destinationInfo = parseResult.GetValue(destinationArgument);
+			EncoderPreset preset = parseResult.GetValue(presetOption);
+			AudioCodec audioCodec = parseResult.GetValue(audioCodecOption);
+			bool force = parseResult.GetValue(forceOption);
+
+			if (pathInfo is null)
 			{
-				type = GuessMediaType(pathInfo);
+				return Console.Error.WriteLineAsync("Path cannot be null");
 			}
 
-			return type switch
+			if (destinationInfo is null)
 			{
-				MediaType.Video => TranscodeVideo(pathInfo, destinationInfo, preset, videoCodec, audioCodec,
-					subtitleCodec, videoContainer, force, cancellationToken),
-				MediaType.Audio => TranscodeAudio(pathInfo, destinationInfo, preset, audioCodec, force,
-					cancellationToken),
-				MediaType.Image => TranscodeImage(pathInfo, destinationInfo, preset, imageCodec, force),
-				MediaType.Other => Console.Error.WriteLineAsync("Media type is not supported"),
-				MediaType.Unknown => Console.Error.WriteLineAsync(
-					"Failed to detect media type, try adding the --type parameter"),
-				_ => throw new ArgumentOutOfRangeException(type.ToString())
-			};
+				return Console.Error.WriteLineAsync("Destination cannot be null");
+			}
+
+			return TranscodeAudio(pathInfo, destinationInfo, preset, audioCodec, force, cancellationToken);
 		});
+		Command imageCommand = new("image", "transcode images to a different format")
+		{
+			pathArgument,
+			destinationArgument,
+			presetOption,
+			imageCodecOption,
+			forceOption
+		};
+		imageCommand.SetAction(parseResult =>
+		{
+			PathInfo? pathInfo = parseResult.GetValue(pathArgument);
+			PathInfo? destinationInfo = parseResult.GetValue(destinationArgument);
+			EncoderPreset preset = parseResult.GetValue(presetOption);
+			ImageCodec imageCodec = parseResult.GetValue(imageCodecOption);
+			bool force = parseResult.GetValue(forceOption);
+
+			if (pathInfo is null)
+			{
+				return Console.Error.WriteLineAsync("Path cannot be null");
+			}
+
+			if (destinationInfo is null)
+			{
+				return Console.Error.WriteLineAsync("Destination cannot be null");
+			}
+
+			return TranscodeImage(pathInfo, destinationInfo, preset, imageCodec, force);
+		});
+
+		// Transcoding command
+		Command transcodeCommand = new("transcode", "Transcode media to a different format")
+		{
+			videoCommand, audioCommand, imageCommand
+		};
 
 		// Root command
 		RootCommand rootCommand = new()
@@ -290,34 +329,5 @@ public static class CommandLine
 			await Console.Error.WriteLineAsync("The operation was aborted");
 			return 1;
 		}
-	}
-
-	private static MediaType GuessMediaType(PathInfo path)
-	{
-		HashSet<string> videoFilter = [".mkv", ".webm", ".mp4", ".m4v", ".m4a", ".avi", ".mov", ".qt", ".ogv"];
-		HashSet<string> audioFilter = [".mp3", ".wav", ".flac", ".ogg", ".opus"];
-		HashSet<string> imageFilter = [".jpg", ".jpeg", ".jfif", ".png", ".heif", ".heic", ".avif"];
-		if (!File.Exists(path.Path))
-		{
-			return MediaType.Unknown;
-		}
-
-		string extension = Path.GetExtension(path.Path);
-		if (videoFilter.Contains(extension))
-		{
-			return MediaType.Video;
-		}
-
-		if (audioFilter.Contains(extension))
-		{
-			return MediaType.Audio;
-		}
-
-		if (imageFilter.Contains(extension))
-		{
-			return MediaType.Image;
-		}
-
-		return MediaType.Unknown;
 	}
 }
