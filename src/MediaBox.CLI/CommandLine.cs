@@ -10,6 +10,96 @@ namespace MediaBox.CLI;
 
 public static class CommandLine
 {
+	// IO
+	private static readonly Argument<string> PathArgument = new("path")
+	{
+		Description = "Path to the input file or directory",
+		Validators =
+		{
+			result =>
+			{
+				string path = result.Tokens[0].Value;
+				if (!Path.Exists(path))
+				{
+					result.AddError($"Path at '{path}' does not exist");
+				}
+			}
+		}
+	};
+
+	private static readonly Argument<string> DestinationArgument = new("destination")
+	{
+		Description = "Path to the output file or directory",
+		Validators =
+		{
+			result =>
+			{
+				char[] invalidPathChars = Path.GetInvalidPathChars();
+				char[] invalidChars = Path.GetInvalidFileNameChars();
+				string path = result.Tokens[0].Value;
+				if (path.Length == 0
+					|| path.Any(c => invalidPathChars.Contains(c))
+					|| Path.GetFileName(path).Any(c => invalidChars.Contains(c)))
+				{
+					result.AddError($"Path at '{path}' is invalid");
+				}
+			}
+		}
+	};
+
+	// Transcoding
+	private static readonly Option<EncoderPreset> PresetOption = new("--preset")
+	{
+		Description = "Quality preset for the media",
+		DefaultValueFactory = _ => EncoderPreset.Normal
+	};
+
+	private static readonly Option<VideoCodec> VideoCodecOption = new("--video-codec")
+	{
+		Description = "The codec to use for video",
+		DefaultValueFactory = _ => VideoCodec.Copy
+	};
+
+	private static readonly Option<AudioCodec> AudioCodecOption = new("--audio-codec")
+	{
+		Description = "The codec to use for audio",
+		DefaultValueFactory = _ => AudioCodec.Copy
+	};
+
+	private static readonly Option<SubtitleCodec> SubtitleCodecOption = new("--subtitle-codec")
+	{
+		Description = "The codec to use for subtitles",
+		DefaultValueFactory = _ => SubtitleCodec.Copy
+	};
+
+	private static readonly Option<ImageCodec> ImageCodecOption = new("--image-codec")
+	{
+		Description = "The codec to use for images",
+		DefaultValueFactory = _ => ImageCodec.JPEG
+	};
+
+	private static readonly Option<VideoContainer> VideoContainerOption = new("--video-container")
+	{
+		Description = "The container to use for video",
+		DefaultValueFactory = _ => VideoContainer.MKV
+	};
+
+	private static readonly Option<bool> ForceOption = new("--force")
+	{
+		Description = "Encode files even if their file extension already matches the target."
+	};
+
+	// Other
+	private static readonly Option<bool> AboutOption = new("--about")
+	{
+		Description = "Get copyright information for MediaBox"
+	};
+
+	private static readonly Option<bool> ThirdPartyOption = new("--third-party-notices")
+	{
+		Description = "Get copyright information for bundled third-party software"
+	};
+
 	/// <summary>
 	///     Parses command-line arguments.
 	/// </summary>
@@ -18,106 +108,28 @@ public static class CommandLine
 	/// <returns>0 if the program was successful, and 1 if it was not.</returns>
 	public static Task<int> StartCommandline(string[] args, CancellationToken ct = default)
 	{
-		// Options
-		// IO
-		Argument<string> pathArgument = new("path")
-		{
-			Description = "Path to the input file or directory",
-			Validators =
-			{
-				result =>
-				{
-					string path = result.Tokens[0].Value;
-					if (!Path.Exists(path))
-					{
-						result.AddError($"Path at '{path}' does not exist");
-					}
-				}
-			}
-		};
-		Argument<string> destinationArgument = new("destination")
-		{
-			Description = "Path to the output file or directory",
-			Validators =
-			{
-				result =>
-				{
-					char[] invalidPathChars = Path.GetInvalidPathChars();
-					char[] invalidChars = Path.GetInvalidFileNameChars();
-					string path = result.Tokens[0].Value;
-					if (path.Length == 0
-						|| path.Any(c => invalidPathChars.Contains(c))
-						|| Path.GetFileName(path).Any(c => invalidChars.Contains(c)))
-					{
-						result.AddError($"Path at '{path}' is invalid");
-					}
-				}
-			}
-		};
-		// Transcoding
-		Option<EncoderPreset> presetOption = new("--preset")
-		{
-			Description = "Quality preset for the media",
-			DefaultValueFactory = _ => EncoderPreset.Normal
-		};
-		Option<VideoCodec> videoCodecOption = new("--video-codec")
-		{
-			Description = "The codec to use for video",
-			DefaultValueFactory = _ => VideoCodec.Copy
-		};
-		Option<AudioCodec> audioCodecOption = new("--audio-codec")
-		{
-			Description = "The codec to use for audio",
-			DefaultValueFactory = _ => AudioCodec.Copy
-		};
-		Option<SubtitleCodec> subtitleCodecOption = new("--subtitle-codec")
-		{
-			Description = "The codec to use for subtitles",
-			DefaultValueFactory = _ => SubtitleCodec.Copy
-		};
-		Option<ImageCodec> imageCodecOption = new("--image-codec")
-		{
-			Description = "The codec to use for images",
-			DefaultValueFactory = _ => ImageCodec.JPEG
-		};
-		Option<VideoContainer> videoContainerOption = new("--video-container")
-		{
-			Description = "The container to use for video",
-			DefaultValueFactory = _ => VideoContainer.MKV
-		};
-		Option<bool> forceOption = new("--force")
-		{
-			Description = "Encode files even if their file extension already matches the target."
-		};
-		// Other
-		Option<bool> aboutOption = new("--about") { Description = "Get copyright information for MediaBox" };
-		Option<bool> thirdPartyOption = new("--third-party-notices")
-		{
-			Description = "Get copyright information for bundled third-party software"
-		};
-
 		// Transcoding commands
 		Command videoCommand = new("video", "transcode video to a different format")
 		{
-			pathArgument,
-			destinationArgument,
-			presetOption,
-			videoCodecOption,
-			audioCodecOption,
-			subtitleCodecOption,
-			videoContainerOption,
-			forceOption
+			PathArgument,
+			DestinationArgument,
+			PresetOption,
+			VideoCodecOption,
+			AudioCodecOption,
+			SubtitleCodecOption,
+			VideoContainerOption,
+			ForceOption
 		};
 		videoCommand.SetAction((parseResult, cancellationToken) =>
 		{
-			string? path = parseResult.GetValue(pathArgument);
-			string? destination = parseResult.GetValue(destinationArgument);
-			EncoderPreset preset = parseResult.GetValue(presetOption);
-			VideoCodec videoCodec = parseResult.GetValue(videoCodecOption);
-			AudioCodec audioCodec = parseResult.GetValue(audioCodecOption);
-			SubtitleCodec subtitleCodec = parseResult.GetValue(subtitleCodecOption);
-			VideoContainer videoContainer = parseResult.GetValue(videoContainerOption);
-			bool force = parseResult.GetValue(forceOption);
+			string? path = parseResult.GetValue(PathArgument);
+			string? destination = parseResult.GetValue(DestinationArgument);
+			EncoderPreset preset = parseResult.GetValue(PresetOption);
+			VideoCodec videoCodec = parseResult.GetValue(VideoCodecOption);
+			AudioCodec audioCodec = parseResult.GetValue(AudioCodecOption);
+			SubtitleCodec subtitleCodec = parseResult.GetValue(SubtitleCodecOption);
+			VideoContainer videoContainer = parseResult.GetValue(VideoContainerOption);
+			bool force = parseResult.GetValue(ForceOption);
 
 			if (path is null)
 			{
@@ -134,19 +146,19 @@ public static class CommandLine
 		});
 		Command audioCommand = new("audio", "transcode audio to a different format")
 		{
-			pathArgument,
-			destinationArgument,
-			presetOption,
-			audioCodecOption,
-			forceOption
+			PathArgument,
+			DestinationArgument,
+			PresetOption,
+			AudioCodecOption,
+			ForceOption
 		};
 		audioCommand.SetAction((parseResult, cancellationToken) =>
 		{
-			string? path = parseResult.GetValue(pathArgument);
-			string? destinationInfo = parseResult.GetValue(destinationArgument);
-			EncoderPreset preset = parseResult.GetValue(presetOption);
-			AudioCodec audioCodec = parseResult.GetValue(audioCodecOption);
-			bool force = parseResult.GetValue(forceOption);
+			string? path = parseResult.GetValue(PathArgument);
+			string? destinationInfo = parseResult.GetValue(DestinationArgument);
+			EncoderPreset preset = parseResult.GetValue(PresetOption);
+			AudioCodec audioCodec = parseResult.GetValue(AudioCodecOption);
+			bool force = parseResult.GetValue(ForceOption);
 
 			if (path is null)
 			{
@@ -162,19 +174,19 @@ public static class CommandLine
 		});
 		Command imageCommand = new("image", "transcode images to a different format")
 		{
-			pathArgument,
-			destinationArgument,
-			presetOption,
-			imageCodecOption,
-			forceOption
+			PathArgument,
+			DestinationArgument,
+			PresetOption,
+			ImageCodecOption,
+			ForceOption
 		};
 		imageCommand.SetAction(parseResult =>
 		{
-			string? path = parseResult.GetValue(pathArgument);
-			string? destination = parseResult.GetValue(destinationArgument);
-			EncoderPreset preset = parseResult.GetValue(presetOption);
-			ImageCodec imageCodec = parseResult.GetValue(imageCodecOption);
-			bool force = parseResult.GetValue(forceOption);
+			string? path = parseResult.GetValue(PathArgument);
+			string? destination = parseResult.GetValue(DestinationArgument);
+			EncoderPreset preset = parseResult.GetValue(PresetOption);
+			ImageCodec imageCodec = parseResult.GetValue(ImageCodecOption);
+			bool force = parseResult.GetValue(ForceOption);
 
 			if (path is null)
 			{
@@ -200,15 +212,15 @@ public static class CommandLine
 		{
 			Description = "A wrapper for FFmpeg and libvips for video, audio, and image transcoding",
 			Subcommands = { transcodeCommand },
-			Options = { aboutOption, thirdPartyOption }
+			Options = { AboutOption, ThirdPartyOption }
 		};
 		rootCommand.SetAction(parseResult =>
 			{
-				if (parseResult.GetValue(aboutOption))
+				if (parseResult.GetValue(AboutOption))
 				{
 					Console.WriteLine(License.Copyright);
 				}
-				else if (parseResult.GetValue(thirdPartyOption))
+				else if (parseResult.GetValue(ThirdPartyOption))
 				{
 					Console.WriteLine(License.ThirdPartyCopyright);
 				}
