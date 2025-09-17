@@ -145,7 +145,7 @@ public class AudioEncoder : IAudioEncoder
 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
-			await FFmpeg.RunAsync(new FFmpegConfig(file, target, args, cancellationToken));
+			await FFmpeg.RunAsync(file, target, args, cancellationToken);
 		}
 	}
 

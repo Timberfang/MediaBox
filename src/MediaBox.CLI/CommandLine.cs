@@ -20,36 +20,37 @@ public static class CommandLine
 	{
 		// Options
 		// IO
-		Argument<PathInfo> pathArgument = new("path")
+		Argument<string> pathArgument = new("path")
 		{
 			Description = "Path to the input file or directory",
-			CustomParser = result => new PathInfo(Path.GetFullPath(result.Tokens[0].Value)),
 			Validators =
 			{
 				result =>
 				{
-					PathInfo pathInfo = new(Path.GetFullPath(result.Tokens[0].Value));
-					if (!pathInfo.Exists)
+					string path = result.Tokens[0].Value;
+					if (!Path.Exists(path))
 					{
-						result.AddError($"Path at '{pathInfo.Path}' does not exist");
+						result.AddError($"Path at '{path}' does not exist");
 					}
 				}
 			}
 		};
-		Argument<PathInfo> destinationArgument = new("destination")
+		Argument<string> destinationArgument = new("destination")
 		{
 			Description = "Path to the output file or directory",
-			CustomParser = result => new PathInfo(Path.GetFullPath(result.Tokens[0].Value)),
 			Validators =
 			{
 				result =>
 				{
-					PathInfo pathInfo = new(Path.GetFullPath(result.Tokens[0].Value));
-					if (!pathInfo.IsValid)
+					char[] invalidPathChars = Path.GetInvalidPathChars();
+					char[] invalidChars = Path.GetInvalidFileNameChars();
+					string path = result.Tokens[0].Value;
+					if (path.Length == 0
+						|| path.Any(c => invalidPathChars.Contains(c))
+						|| Path.GetFileName(path).Any(c => invalidChars.Contains(c)))
 					{
-						result.AddError($"Path at '{pathInfo.Path}' is invalid");
+						result.AddError($"Path at '{path}' is invalid");
 					}
-					// else if (!pathInfo.IsWritable) result.AddError($"Path at '{pathInfo.Path}' is not writable");
 				}
 			}
 		};
@@ -109,8 +110,8 @@ public static class CommandLine
 		};
 		videoCommand.SetAction((parseResult, cancellationToken) =>
 		{
-			PathInfo? pathInfo = parseResult.GetValue(pathArgument);
-			PathInfo? destinationInfo = parseResult.GetValue(destinationArgument);
+			string? path = parseResult.GetValue(pathArgument);
+			string? destination = parseResult.GetValue(destinationArgument);
 			EncoderPreset preset = parseResult.GetValue(presetOption);
 			VideoCodec videoCodec = parseResult.GetValue(videoCodecOption);
 			AudioCodec audioCodec = parseResult.GetValue(audioCodecOption);
@@ -118,17 +119,17 @@ public static class CommandLine
 			VideoContainer videoContainer = parseResult.GetValue(videoContainerOption);
 			bool force = parseResult.GetValue(forceOption);
 
-			if (pathInfo is null)
+			if (path is null)
 			{
 				return Console.Error.WriteLineAsync("Path cannot be null");
 			}
 
-			if (destinationInfo is null)
+			if (destination is null)
 			{
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
-			return TranscodeVideo(pathInfo, destinationInfo, preset, videoCodec, audioCodec,
+			return TranscodeVideo(path, destination, preset, videoCodec, audioCodec,
 				subtitleCodec, videoContainer, force, cancellationToken);
 		});
 		Command audioCommand = new("audio", "transcode audio to a different format")
@@ -141,13 +142,13 @@ public static class CommandLine
 		};
 		audioCommand.SetAction((parseResult, cancellationToken) =>
 		{
-			PathInfo? pathInfo = parseResult.GetValue(pathArgument);
-			PathInfo? destinationInfo = parseResult.GetValue(destinationArgument);
+			string? path = parseResult.GetValue(pathArgument);
+			string? destinationInfo = parseResult.GetValue(destinationArgument);
 			EncoderPreset preset = parseResult.GetValue(presetOption);
 			AudioCodec audioCodec = parseResult.GetValue(audioCodecOption);
 			bool force = parseResult.GetValue(forceOption);
 
-			if (pathInfo is null)
+			if (path is null)
 			{
 				return Console.Error.WriteLineAsync("Path cannot be null");
 			}
@@ -157,7 +158,7 @@ public static class CommandLine
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
-			return TranscodeAudio(pathInfo, destinationInfo, preset, audioCodec, force, cancellationToken);
+			return TranscodeAudio(path, destinationInfo, preset, audioCodec, force, cancellationToken);
 		});
 		Command imageCommand = new("image", "transcode images to a different format")
 		{
@@ -169,23 +170,23 @@ public static class CommandLine
 		};
 		imageCommand.SetAction(parseResult =>
 		{
-			PathInfo? pathInfo = parseResult.GetValue(pathArgument);
-			PathInfo? destinationInfo = parseResult.GetValue(destinationArgument);
+			string? path = parseResult.GetValue(pathArgument);
+			string? destination = parseResult.GetValue(destinationArgument);
 			EncoderPreset preset = parseResult.GetValue(presetOption);
 			ImageCodec imageCodec = parseResult.GetValue(imageCodecOption);
 			bool force = parseResult.GetValue(forceOption);
 
-			if (pathInfo is null)
+			if (path is null)
 			{
 				return Console.Error.WriteLineAsync("Path cannot be null");
 			}
 
-			if (destinationInfo is null)
+			if (destination is null)
 			{
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
-			return TranscodeImage(pathInfo, destinationInfo, preset, imageCodec, force);
+			return TranscodeImage(path, destination, preset, imageCodec, force);
 		});
 
 		// Transcoding command
@@ -232,8 +233,8 @@ public static class CommandLine
 	/// <param name="cancellationToken">Token to cancel the encoding.</param>
 	/// <returns>A Task object.</returns>
 	private static async Task<int> TranscodeVideo(
-		PathInfo path,
-		PathInfo destination,
+		string path,
+		string destination,
 		EncoderPreset preset,
 		VideoCodec videoCodec,
 		AudioCodec audioCodec,
@@ -243,7 +244,7 @@ public static class CommandLine
 		CancellationToken cancellationToken
 	)
 	{
-		VideoEncoder videoEncoder = new(path.Path, destination.Path, preset)
+		VideoEncoder videoEncoder = new(path, destination, preset)
 		{
 			VideoCodec = videoCodec,
 			AudioCodec = audioCodec,
@@ -276,15 +277,15 @@ public static class CommandLine
 	/// <param name="cancellationToken">Token to cancel the encoding.</param>
 	/// <returns>A Task object.</returns>
 	private static async Task<int> TranscodeAudio(
-		PathInfo path,
-		PathInfo destination,
+		string path,
+		string destination,
 		EncoderPreset preset,
 		AudioCodec audioCodec,
 		bool force,
 		CancellationToken cancellationToken
 	)
 	{
-		AudioEncoder audioEncoder = new(path.Path, destination.Path, preset) { AudioCodec = audioCodec, Force = force };
+		AudioEncoder audioEncoder = new(path, destination, preset) { AudioCodec = audioCodec, Force = force };
 		audioEncoder.FileEncodingStarted +=
 			(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
 		try
@@ -309,14 +310,14 @@ public static class CommandLine
 	/// <param name="force">Encode files even if their file extension already matches the target.</param>
 	/// <returns>A Task object.</returns>
 	private static async Task<int> TranscodeImage(
-		PathInfo path,
-		PathInfo destination,
+		string path,
+		string destination,
 		EncoderPreset preset,
 		ImageCodec imageCodec,
 		bool force
 	)
 	{
-		ImageEncoder imageEncoder = new(path.Path, destination.Path, preset) { ImageCodec = imageCodec, Force = force };
+		ImageEncoder imageEncoder = new(path, destination, preset) { ImageCodec = imageCodec, Force = force };
 		imageEncoder.FileEncodingStarted +=
 			(_, filePath) => Console.WriteLine($"Encoding file: {filePath}");
 		try
