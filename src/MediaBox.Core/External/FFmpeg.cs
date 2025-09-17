@@ -44,12 +44,16 @@ public static partial class FFmpeg
 	/// <summary>
 	///     Runs FFmpeg with the given configuration.
 	/// </summary>
-	/// <param name="config">A configuration object for FFmpeg.</param>
-	internal static async Task RunAsync(FFmpegConfig config)
+	/// <param name="inPath">The path to the input file.</param>
+	/// <param name="outPath">The path where the output file will be written.</param>
+	/// <param name="arguments">Arguments to be passed to FFmpeg.</param>
+	/// <param name="cts">Cancellation token to cancel ffmpeg operations.</param>
+	internal static async Task RunAsync(string inPath, string outPath, IEnumerable<string> arguments,
+		CancellationToken cts = default)
 	{
 		// Prepare input/output paths
-		string? directory = Directory.GetParent(config.InPath)?.FullName;
-		if (Path.Exists(config.OutPath))
+		string? directory = Directory.GetParent(inPath)?.FullName;
+		if (Path.Exists(outPath))
 		{
 			return;
 		}
@@ -66,13 +70,13 @@ public static partial class FFmpeg
 			"error",
 			"-nostdin",
 			"-i",
-			config.InPath
+			inPath
 		];
-		args.AddRange(config.Arguments);
-		args.Add(config.OutPath);
+		args.AddRange(arguments);
+		args.Add(outPath);
 		await Cli.Wrap("ffmpeg")
 			.WithArguments(args)
-			.ExecuteAsync(config.CancellationToken);
+			.ExecuteAsync(cts);
 	}
 
 	/// <summary>
@@ -81,9 +85,11 @@ public static partial class FFmpeg
 	/// <param name="path">The path to be analyzed.</param>
 	/// <param name="preArguments">Arguments to be placed before the path.</param>
 	/// <param name="postArguments">Arguments to be placed after the path.</param>
+	/// <param name="cts">Cancellation token to cancel ffmpeg operations.</param>
 	/// <returns>FFmpeg's output.</returns>
 	/// <exception cref="FileNotFoundException">Thrown if the given path does not exist, or is not a file.</exception>
-	private static async Task<string> AnalyzeAsync(string path, string[] preArguments, string[] postArguments)
+	private static async Task<string> AnalyzeAsync(string path, string[] preArguments, string[] postArguments,
+		CancellationToken cts = default)
 	{
 		if (!File.Exists(path))
 		{
@@ -102,7 +108,7 @@ public static partial class FFmpeg
 		args.AddRange(["-f", "null", "-"]);
 		BufferedCommandResult ffmpegOutput = await Cli.Wrap("ffmpeg")
 			.WithArguments(args)
-			.ExecuteBufferedAsync();
+			.ExecuteBufferedAsync(cts);
 		return ffmpegOutput.StandardOutput;
 	}
 
@@ -111,9 +117,10 @@ public static partial class FFmpeg
 	/// </summary>
 	/// <param name="path">The path to be probed.</param>
 	/// <param name="arguments">The arguments to be passed to FFprobe.</param>
+	/// <param name="cts">Cancellation token to cancel ffmpeg operations.</param>
 	/// <returns>FFprobe's output.</returns>
 	/// <exception cref="FileNotFoundException">Thrown if the given path does not exist, or is not a file.</exception>
-	private static async Task<string> ProbeAsync(string path, string[] arguments)
+	private static async Task<string> ProbeAsync(string path, string[] arguments, CancellationToken cts = default)
 	{
 		if (!File.Exists(path))
 		{
@@ -129,7 +136,7 @@ public static partial class FFmpeg
 		args.AddRange(["-i", path]);
 		BufferedCommandResult ffprobeOutput = await Cli.Wrap("ffprobe")
 			.WithArguments(args)
-			.ExecuteBufferedAsync();
+			.ExecuteBufferedAsync(cts);
 		return ffprobeOutput.StandardOutput;
 	}
 
@@ -137,9 +144,10 @@ public static partial class FFmpeg
 	///     Detects the duration of a video file.
 	/// </summary>
 	/// <param name="path">The path of the file to be processed.</param>
+	/// <param name="cts">Cancellation token to cancel ffmpeg operations.</param>
 	/// <returns>The duration of the video in seconds.</returns>
 	/// <exception cref="InvalidDataException">Thrown when FFprobe returns an invalid duration.</exception>
-	public static async Task<int> GetDuration(string path)
+	public static async Task<int> GetDuration(string path, CancellationToken cts = default)
 	{
 		string[] args =
 		[
@@ -150,7 +158,7 @@ public static partial class FFmpeg
 			"-of",
 			"compact=p=0:nk=1"
 		];
-		string ffprobeOutput = await ProbeAsync(path, args);
+		string ffprobeOutput = await ProbeAsync(path, args, cts);
 		return float.TryParse(ffprobeOutput, out float durationFloat)
 			? (int)durationFloat
 			: throw new InvalidDataException(
@@ -161,8 +169,9 @@ public static partial class FFmpeg
 	///     Detects the number of audio channels in a video file.
 	/// </summary>
 	/// <param name="path">The path of the file to be processed.</param>
+	/// <param name="cts">Cancellation token to cancel ffmpeg operations.</param>
 	/// <returns>The number of audio channels.</returns>
-	public static async Task<int> GetChannelCount(string path)
+	public static async Task<int> GetChannelCount(string path, CancellationToken cts = default)
 	{
 		string[] args =
 		[
@@ -173,7 +182,7 @@ public static partial class FFmpeg
 			"-of",
 			"compact=p=0:nk=1"
 		];
-		string ffprobeOutput = await ProbeAsync(path, args);
+		string ffprobeOutput = await ProbeAsync(path, args, cts);
 		return int.TryParse(ffprobeOutput, out int channels) ? channels : 0;
 	}
 
@@ -190,10 +199,11 @@ public static partial class FFmpeg
 	///     - Otherwise, it starts at the beginning (0 seconds).
 	/// </remarks>
 	/// <param name="path">The path of the file to be processed.</param>
+	/// <param name="cts">Cancellation token to cancel ffmpeg operations.</param>
 	/// <returns>The crop information, in FFmpeg's format.</returns>
-	public static async Task<string> GetCroppingConfig(string path)
+	public static async Task<string> GetCroppingConfig(string path, CancellationToken cts = default)
 	{
-		int startTime = await GetDuration(path) < 600 ? 0 : 300;
+		int startTime = await GetDuration(path, cts) < 600 ? 0 : 300;
 		string[] argsBefore =
 		[
 			"-skip_frame",
@@ -210,7 +220,7 @@ public static partial class FFmpeg
 			"cropdetect",
 			"-an"
 		];
-		string ffmpegOutput = await AnalyzeAsync(path, argsBefore, argsAfter);
+		string ffmpegOutput = await AnalyzeAsync(path, argsBefore, argsAfter, cts);
 		return CroppingRegex().Match(ffmpegOutput).Groups[0].Value;
 	}
 

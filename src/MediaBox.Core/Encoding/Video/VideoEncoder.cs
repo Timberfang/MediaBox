@@ -217,8 +217,8 @@ public class VideoEncoder : IVideoEncoder
 			}
 
 			// Now that we know the file exists, begin expensive tasks
-			Task<int> channelCountTask = FFmpeg.GetChannelCount(file);
-			Task<string> croppingConfigTask = FFmpeg.GetCroppingConfig(file);
+			Task<int> channelCountTask = FFmpeg.GetChannelCount(file, cancellationToken);
+			Task<string> croppingConfigTask = FFmpeg.GetCroppingConfig(file, cancellationToken);
 
 			// Fix subtitle codec if needed - .mp4 files use MOV_TEXT, which other formats don't support.
 			if (Path.GetExtension(file).Equals(".mp4") && VideoContainer is not VideoContainer.MP4)
@@ -262,7 +262,7 @@ public class VideoEncoder : IVideoEncoder
 					"-row-mt", // Multi-threading optimization, see https://trac.ffmpeg.org/wiki/Encode/VP9#rowmt
 					"1"
 				];
-				await FFmpeg.RunAsync(new FFmpegConfig(file, nullPath, argsFirstPass, cancellationToken));
+				await FFmpeg.RunAsync(file, nullPath, argsFirstPass, cancellationToken);
 			}
 
 			// Handle audio bitrate
@@ -292,7 +292,7 @@ public class VideoEncoder : IVideoEncoder
 
 			// Encode
 			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
-			await FFmpeg.RunAsync(new FFmpegConfig(file, target, args, cancellationToken));
+			await FFmpeg.RunAsync(file, target, args, cancellationToken);
 
 			// Cleanup
 			string ffmpegLogPath = Path.Join(Directory.GetCurrentDirectory(), "ffmpeg2pass-0.log");
