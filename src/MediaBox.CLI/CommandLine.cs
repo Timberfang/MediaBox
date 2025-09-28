@@ -141,6 +141,15 @@ public static class CommandLine
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
+			if (videoContainer == VideoContainer.WEBM &&
+				(videoCodec != VideoCodec.VP9 || audioCodec != AudioCodec.OPUS))
+			{
+				Console.WriteLine(
+					"Container '.webm' always uses VP9 video and OPUS audio, ignoring configured codecs...");
+				videoContainer = VideoContainer.WEBM;
+				audioCodec = AudioCodec.OPUS;
+			}
+
 			return TranscodeVideo(path, destination, preset, videoCodec, audioCodec,
 				subtitleCodec, videoContainer, force, cancellationToken);
 		});
