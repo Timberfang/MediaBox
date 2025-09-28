@@ -198,6 +198,8 @@ public class VideoEncoder : IVideoEncoder
 
 		foreach (string file in _files)
 		{
+			bool notify = true;
+
 			// Set up paths
 			string target = Path.ChangeExtension(GetTargetPath(file), extension);
 			if (Path.Exists(target))
@@ -262,6 +264,12 @@ public class VideoEncoder : IVideoEncoder
 					"-row-mt", // Multi-threading optimization, see https://trac.ffmpeg.org/wiki/Encode/VP9#rowmt
 					"1"
 				];
+				if (notify)
+				{
+					FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
+					notify = false;
+				}
+
 				await FFmpeg.RunAsync(file, nullPath, argsFirstPass, cancellationToken);
 			}
 
@@ -291,7 +299,13 @@ public class VideoEncoder : IVideoEncoder
 			}
 
 			// Encode
-			FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
+			if (notify)
+			{
+				FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
+				// ReSharper disable once RedundantAssignment
+				notify = false;
+			}
+
 			await FFmpeg.RunAsync(file, target, args, cancellationToken);
 
 			// Cleanup
