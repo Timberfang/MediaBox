@@ -62,4 +62,74 @@ internal static class ProcessManager
 
 		return output;
 	}
+
+	public static string GetPath(string name)
+	{
+		name = ConvertPath(name);
+		string path;
+		if (Exists(name, true))
+		{
+			path = Path.Join(AppContext.BaseDirectory, name);
+		}
+		else if (Exists(name))
+		{
+			path = name;
+		}
+		else
+		{
+			throw new FileNotFoundException(name);
+		}
+
+		return path;
+	}
+
+	public static bool Exists(string name, bool local = false)
+	{
+		name = ConvertPath(name);
+		if (local)
+		{
+			return File.Exists(Path.Join(AppContext.BaseDirectory, name));
+		}
+
+		if (OperatingSystem.IsWindows())
+		{
+			using Process process = new();
+			process.StartInfo.FileName = "where.exe";
+			process.StartInfo.CreateNoWindow = true;
+			process.StartInfo.Arguments = $"/Q {name}";
+			process.Start();
+			process.WaitForExit();
+			return process.ExitCode == 0;
+		}
+		else
+		{
+			using Process process = new();
+			process.StartInfo.FileName = "which";
+			process.StartInfo.CreateNoWindow = true;
+			process.StartInfo.Arguments = name;
+			process.Start();
+			process.WaitForExit();
+			return process.ExitCode == 0;
+		}
+	}
+
+	public static string ConvertPath(string path)
+	{
+		if (OperatingSystem.IsWindows())
+		{
+			if (!path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+			{
+				return $"{path}.exe";
+			}
+		}
+		else
+		{
+			if (path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+			{
+				return path[..^4];
+			}
+		}
+
+		return path;
+	}
 }

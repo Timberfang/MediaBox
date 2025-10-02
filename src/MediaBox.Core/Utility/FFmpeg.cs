@@ -50,6 +50,8 @@ public static partial class FFmpeg
 	internal static async Task RunAsync(string inPath, string outPath, IEnumerable<string> arguments,
 		CancellationToken cts = default)
 	{
+		string ffmpeg = ProcessManager.GetPath("ffmpeg");
+
 		// Prepare input/output paths
 		string? directory = Directory.GetParent(inPath)?.FullName;
 		if (Path.Exists(outPath))
@@ -77,7 +79,7 @@ public static partial class FFmpeg
 		{
 			// Silences SVT_AV1's output
 			Dictionary<string, string> svtSilencer = new() { { "SVT_LOG", "0" } };
-			await ProcessManager.StartAsync("ffmpeg", args, environmentVariables: svtSilencer, ct: cts);
+			await ProcessManager.StartAsync(ffmpeg, args, environmentVariables: svtSilencer, ct: cts);
 		}
 		catch (ExternalException)
 		{
@@ -102,6 +104,7 @@ public static partial class FFmpeg
 	private static async Task<string> AnalyzeAsync(string path, string[] preArguments, string[] postArguments,
 		CancellationToken cts = default)
 	{
+		string ffmpeg = ProcessManager.GetPath("ffmpeg");
 		if (!File.Exists(path))
 		{
 			throw new FileNotFoundException($"File at {path} does not exist");
@@ -117,7 +120,7 @@ public static partial class FFmpeg
 		args.AddRange(["-i", path]);
 		args.AddRange(postArguments);
 		args.AddRange(["-f", "null", "-"]);
-		return await ProcessManager.StartAsync("ffmpeg", args, ct: cts);
+		return await ProcessManager.StartAsync(ffmpeg, args, ct: cts);
 	}
 
 	/// <summary>
@@ -130,6 +133,7 @@ public static partial class FFmpeg
 	/// <exception cref="FileNotFoundException">Thrown if the given path does not exist, or is not a file.</exception>
 	private static async Task<string> ProbeAsync(string path, string[] arguments, CancellationToken cts = default)
 	{
+		string ffprobe = ProcessManager.GetPath("ffprobe");
 		if (!File.Exists(path))
 		{
 			throw new FileNotFoundException($"File at {path} does not exist");
@@ -142,7 +146,7 @@ public static partial class FFmpeg
 		];
 		args.AddRange(arguments);
 		args.AddRange(["-i", path]);
-		return await ProcessManager.StartAsync("ffprobe", args, ct: cts);
+		return await ProcessManager.StartAsync(ffprobe, args, ct: cts);
 	}
 
 	/// <summary>
