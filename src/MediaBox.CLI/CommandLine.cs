@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Runtime.InteropServices;
 using MediaBox.Core.Encoding;
 using MediaBox.Core.Encoding.Audio;
 using MediaBox.Core.Encoding.Codecs;
@@ -285,6 +286,11 @@ public static class CommandLine
 			await Console.Error.WriteLineAsync("The operation was aborted");
 			return 1;
 		}
+		catch (ExternalException e)
+		{
+			await Console.Error.WriteLineAsync($"ffmpeg error(s): \"{e.Message}\"");
+			return 1;
+		}
 	}
 
 	/// <summary>
@@ -317,6 +323,16 @@ public static class CommandLine
 		catch (OperationCanceledException)
 		{
 			await Console.Error.WriteLineAsync("The operation was aborted");
+			return 1;
+		}
+		catch (ExternalException e)
+		{
+			await Console.Error.WriteLineAsync($"ffmpeg error(s): \"{e.Message}\"");
+			if (File.Exists(destination))
+			{
+				File.Delete(destination);
+			}
+
 			return 1;
 		}
 	}

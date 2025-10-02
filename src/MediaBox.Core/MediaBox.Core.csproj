@@ -9,7 +9,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="CliWrap" />
 		<PackageReference Include="NetVips" />
 		<PackageReference Include="NetVips.Native" />
 	</ItemGroup>

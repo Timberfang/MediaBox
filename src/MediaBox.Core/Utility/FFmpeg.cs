@@ -1,9 +1,8 @@
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using CliWrap;
-using CliWrap.Buffered;
 using MediaBox.Core.Encoding.Codecs;
 
-namespace MediaBox.Core.External;
+namespace MediaBox.Core.Utility;
 
 public static partial class FFmpeg
 {
@@ -74,9 +73,21 @@ public static partial class FFmpeg
 		];
 		args.AddRange(arguments);
 		args.Add(outPath);
-		await Cli.Wrap("ffmpeg")
-			.WithArguments(args)
-			.ExecuteAsync(cts);
+		try
+		{
+			// Silences SVT_AV1's output
+			Dictionary<string, string> svtSilencer = new() { { "SVT_LOG", "0" } };
+			await ProcessManager.StartAsync("ffmpeg", args, environmentVariables: svtSilencer, ct: cts);
+		}
+		catch (ExternalException)
+		{
+			if (File.Exists(outPath))
+			{
+				File.Delete(outPath);
+			}
+
+			throw;
+		}
 	}
 
 	/// <summary>
@@ -106,10 +117,7 @@ public static partial class FFmpeg
 		args.AddRange(["-i", path]);
 		args.AddRange(postArguments);
 		args.AddRange(["-f", "null", "-"]);
-		BufferedCommandResult ffmpegOutput = await Cli.Wrap("ffmpeg")
-			.WithArguments(args)
-			.ExecuteBufferedAsync(cts);
-		return ffmpegOutput.StandardOutput;
+		return await ProcessManager.StartAsync("ffmpeg", args, ct: cts);
 	}
 
 	/// <summary>
@@ -134,10 +142,7 @@ public static partial class FFmpeg
 		];
 		args.AddRange(arguments);
 		args.AddRange(["-i", path]);
-		BufferedCommandResult ffprobeOutput = await Cli.Wrap("ffprobe")
-			.WithArguments(args)
-			.ExecuteBufferedAsync(cts);
-		return ffprobeOutput.StandardOutput;
+		return await ProcessManager.StartAsync("ffprobe", args, ct: cts);
 	}
 
 	/// <summary>

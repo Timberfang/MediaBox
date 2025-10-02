@@ -1,5 +1,5 @@
 using MediaBox.Core.Encoding.Codecs;
-using MediaBox.Core.External;
+using MediaBox.Core.Utility;
 
 namespace MediaBox.Core.Encoding.Video;
 
