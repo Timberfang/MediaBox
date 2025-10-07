@@ -232,7 +232,10 @@ public static class CommandLine
 				}
 				else if (parseResult.GetValue(ThirdPartyOption))
 				{
-					Console.WriteLine(License.ThirdPartyCopyright);
+					string separator = Environment.NewLine +
+									   "---------------------------------------------------------" +
+									   Environment.NewLine;
+					Console.WriteLine(string.Join(separator, parseResult.GetValue(AboutOption)));
 				}
 			}
 		);
