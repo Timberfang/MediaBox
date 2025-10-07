@@ -52,6 +52,7 @@ internal static class ProcessManager
 
 		process.StartInfo.Arguments = string.Join(" ", arguments.Select(s => $"\"{s}\""));
 		process.Start();
+		ct.Register(() => Stop(process));
 		await process.WaitForExitAsync(ct);
 		string output = await process.StandardOutput.ReadToEndAsync(ct);
 		string errors = await process.StandardError.ReadToEndAsync(ct);
@@ -131,5 +132,13 @@ internal static class ProcessManager
 		}
 
 		return path;
+	}
+
+	private static void Stop(Process process)
+	{
+		if (!process.HasExited)
+		{
+			process.Kill();
+		}
 	}
 }
