@@ -148,15 +148,14 @@ public static class CommandLine
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
-			if (videoContainer == VideoContainer.WEBM &&
-				(videoCodec != VideoCodec.VP9 || audioCodec != AudioCodec.OPUS))
+			if (Path.HasExtension(path) && !Path.HasExtension(destination))
 			{
-				if (Path.HasExtension(path) && !Path.HasExtension(destination))
-				{
-					destination = Path.Join(destination, Path.GetFileName(path));
-				}
+				destination = Path.Join(destination, Path.GetFileName(path));
 			}
 
+			if ((videoContainer == VideoContainer.WEBM &&
+				 videoCodec != VideoCodec.VP9 && videoCodec != VideoCodec.Copy) ||
+				(audioCodec != AudioCodec.OPUS && audioCodec != AudioCodec.Copy))
 			{
 				Console.WriteLine(
 					"Container '.webm' always uses VP9 video and OPUS audio, ignoring configured codecs...");
