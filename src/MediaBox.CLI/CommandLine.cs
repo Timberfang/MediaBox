@@ -165,7 +165,7 @@ public static class CommandLine
 		audioCommand.SetAction((parseResult, cancellationToken) =>
 		{
 			string? path = parseResult.GetValue(PathArgument);
-			string? destinationInfo = parseResult.GetValue(DestinationArgument);
+			string? destination = parseResult.GetValue(DestinationArgument);
 			EncoderPreset preset = parseResult.GetValue(PresetOption);
 			AudioCodec audioCodec = parseResult.GetValue(AudioCodecOption);
 			bool force = parseResult.GetValue(ForceOption);
@@ -175,12 +175,12 @@ public static class CommandLine
 				return Console.Error.WriteLineAsync("Path cannot be null");
 			}
 
-			if (destinationInfo is null)
+			if (destination is null)
 			{
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
-			return TranscodeAudio(path, destinationInfo, preset, audioCodec, force, cancellationToken);
+			return TranscodeAudio(path, destination, preset, audioCodec, force, cancellationToken);
 		});
 		Command imageCommand = new("image", "transcode images to a different format")
 		{
