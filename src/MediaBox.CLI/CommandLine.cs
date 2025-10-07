@@ -35,6 +35,11 @@ public static class CommandLine
 		{
 			result =>
 			{
+				if (result.Tokens.Count <= 0)
+				{
+					return;
+				}
+
 				char[] invalidPathChars = Path.GetInvalidPathChars();
 				char[] invalidChars = Path.GetInvalidFileNameChars();
 				string path = result.Tokens[0].Value;
@@ -45,7 +50,8 @@ public static class CommandLine
 					result.AddError($"Path at '{path}' is invalid");
 				}
 			}
-		}
+		},
+		DefaultValueFactory = _ => Directory.GetCurrentDirectory()
 	};
 
 	// Transcoding
@@ -145,6 +151,13 @@ public static class CommandLine
 			if (videoContainer == VideoContainer.WEBM &&
 				(videoCodec != VideoCodec.VP9 || audioCodec != AudioCodec.OPUS))
 			{
+				if (Path.HasExtension(path) && !Path.HasExtension(destination))
+				{
+					destination = Path.Join(destination, Path.GetFileName(path));
+				}
+			}
+
+			{
 				Console.WriteLine(
 					"Container '.webm' always uses VP9 video and OPUS audio, ignoring configured codecs...");
 				videoContainer = VideoContainer.WEBM;
@@ -180,6 +193,11 @@ public static class CommandLine
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
+			if (Path.HasExtension(path) && !Path.HasExtension(destination))
+			{
+				destination = Path.Join(destination, Path.GetFileName(path));
+			}
+
 			return TranscodeAudio(path, destination, preset, audioCodec, force, cancellationToken);
 		});
 		Command imageCommand = new("image", "transcode images to a different format")
@@ -206,6 +224,11 @@ public static class CommandLine
 			if (destination is null)
 			{
 				return Console.Error.WriteLineAsync("Destination cannot be null");
+			}
+
+			if (Path.HasExtension(path) && !Path.HasExtension(destination))
+			{
+				destination = Path.Join(destination, Path.GetFileName(path));
 			}
 
 			return TranscodeImage(path, destination, preset, imageCodec, force);
