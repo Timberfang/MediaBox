@@ -80,6 +80,13 @@ public static partial class FFmpeg
 			// Silences SVT_AV1's output
 			Dictionary<string, string> svtSilencer = new() { { "SVT_LOG", "0" } };
 			await ProcessManager.StartAsync(ffmpeg, args, environmentVariables: svtSilencer, ct: cts);
+			cts.Register(() =>
+			{
+				if (File.Exists(outPath))
+				{
+					File.Delete(outPath);
+				}
+			});
 		}
 		catch (ExternalException)
 		{
