@@ -27,12 +27,9 @@ public static class License
 	/// <summary>
 	///     The full text of the third-party notices required for libaries used by MediaBox.
 	/// </summary>
-	public const string ThirdPartyCopyright =
+	public static readonly string[] ThirdPartyCopyright =
+	[
 		"""
-		The following software is made available to you under the licenses of third parties:
-
-		---------------------------------------------------------
-
 		System.CommandLine - MIT
 
 		The MIT License(MIT)
@@ -58,9 +55,8 @@ public static class License
 		LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 		OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 		SOFTWARE.
-
-		---------------------------------------------------------
-
+		""",
+		"""
 		net-vips - MIT
 
 		MIT License
@@ -84,9 +80,8 @@ public static class License
 		LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 		OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 		SOFTWARE.
-
-		---------------------------------------------------------
-
+		""",
+		"""
 		libvips - LGPL v2.1
 
 
@@ -597,7 +592,6 @@ public static class License
 		  Ty Coon, President of Vice
 
 		That's all there is to it!
-
-		---------------------------------------------------------
-		""";
+		"""
+	];
 }
