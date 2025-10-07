@@ -182,19 +182,109 @@ public class VideoEncoder : IVideoEncoder
 
 		// Begin building arguments for ffmpeg
 		// Don't set subtitle codec yet - needs a file-specific check
-		List<string> args =
-		[
-			"-c:v",
-			FFmpeg.VideoCodecs[VideoCodec],
-			"-c:a",
-			FFmpeg.AudioCodecs[AudioCodec],
-			"-c:s",
-			FFmpeg.SubtitleCodecs[SubtitleCodec],
-			"-crf",
-			VideoQuality.ToString(),
-			"-preset",
-			VideoPreset.ToString()
-		];
+		List<string> argsMain;
+		List<string> argsTwoPass;
+		string nullPath = Environment.OSVersion.Platform switch
+		{
+			PlatformID.Win32NT => "NUL",
+			PlatformID.Unix => "/dev/null",
+			_ => throw new PlatformNotSupportedException(Environment.OSVersion.Platform.ToString())
+		};
+		if (VideoCodec is VideoCodec.VP9)
+		{
+			// TODO: Move this to json, make it configurable
+			argsMain =
+			[
+				"-c:v",
+				FFmpeg.VideoCodecs[VideoCodec],
+				"-c:a",
+				FFmpeg.AudioCodecs[AudioCodec],
+				"-c:s",
+				FFmpeg.SubtitleCodecs[SubtitleCodec],
+				"-pass",
+				"2",
+				"-quality",
+				"good",
+				"-lag-in-frames",
+				"25",
+				"-crf",
+				VideoQuality.ToString(),
+				"-b:v",
+				"0",
+				"-cpu-used",
+				"4",
+				"-auto-alt-ref",
+				"1",
+				"-arnr-maxframes",
+				"7",
+				"-arnr-strength",
+				"4",
+				"-aq-mode",
+				"0",
+				"-tile-rows",
+				"0",
+				"-tile-columns",
+				"1",
+				"-enable-tpl",
+				"1",
+				"-row-mt",
+				"1"
+			];
+			argsTwoPass =
+			[
+				"-c:v",
+				FFmpeg.VideoCodecs[VideoCodec],
+				"-pass",
+				"1",
+				"-quality",
+				"good",
+				"-lag-in-frames",
+				"25",
+				"-crf",
+				VideoQuality.ToString(),
+				"-b:v",
+				"0",
+				"-cpu-used",
+				"4",
+				"-auto-alt-ref",
+				"1",
+				"-arnr-maxframes",
+				"7",
+				"-arnr-strength",
+				"4",
+				"-aq-mode",
+				"0",
+				"-tile-rows",
+				"0",
+				"-tile-columns",
+				"6",
+				"-enable-tpl",
+				"1",
+				"-row-mt",
+				"1",
+				"-an",
+				"-f",
+				"null"
+			];
+		}
+		else
+		{
+			argsMain =
+			[
+				"-c:v",
+				FFmpeg.VideoCodecs[VideoCodec],
+				"-c:a",
+				FFmpeg.AudioCodecs[AudioCodec],
+				"-c:s",
+				FFmpeg.SubtitleCodecs[SubtitleCodec],
+				"-crf",
+				VideoQuality.ToString(),
+				"-preset",
+				VideoPreset.ToString()
+			];
+			argsTwoPass = [];
+		}
+
 
 		foreach (string file in _files)
 		{
@@ -225,52 +315,27 @@ public class VideoEncoder : IVideoEncoder
 			// Fix subtitle codec if needed - .mp4 files use MOV_TEXT, which other formats don't support.
 			if (Path.GetExtension(file).Equals(".mp4") && VideoContainer is not VideoContainer.MP4)
 			{
-				args.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec.SRT]);
+				argsMain.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec.SRT]);
 			}
 			else if (!Path.GetExtension(file).Equals(".mp4") && VideoContainer is VideoContainer.MP4)
 			{
-				args.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec.MOVTEXT]);
+				argsMain.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec.MOVTEXT]);
 			}
 			else
 			{
-				args.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec]);
+				argsMain.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec]);
 			}
 
-			// Handle VP9-specific instructions
+			// Handle VP9-specific two-pass encoding
 			if (VideoCodec is VideoCodec.VP9)
 			{
-				args.AddRange("-b:v", "0", "-pass", "2", "-row-mt", "1");
-
-				// Handle first pass of VP9 two-pass encoding, see https://trac.ffmpeg.org/wiki/Encode/VP9#twopass
-				string nullPath = Environment.OSVersion.Platform switch
-				{
-					PlatformID.Win32NT => "NUL",
-					PlatformID.Unix => "/dev/null",
-					_ => throw new PlatformNotSupportedException(Environment.OSVersion.Platform.ToString())
-				};
-				List<string> argsFirstPass =
-				[
-					"-c:v",
-					"libvpx-vp9",
-					"-b:v",
-					"0",
-					"-crf",
-					VideoQuality.ToString(),
-					"-pass",
-					"1",
-					"-an",
-					"-f",
-					"null",
-					"-row-mt", // Multi-threading optimization, see https://trac.ffmpeg.org/wiki/Encode/VP9#rowmt
-					"1"
-				];
 				if (notify)
 				{
 					FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
 					notify = false;
 				}
 
-				await FFmpeg.RunAsync(file, nullPath, argsFirstPass, cancellationToken);
+				await FFmpeg.RunAsync(file, nullPath, argsTwoPass, cancellationToken);
 			}
 
 			// Handle audio bitrate
@@ -280,7 +345,7 @@ public class VideoEncoder : IVideoEncoder
 				>= 5 => Convert.ToInt32(AudioBitrate) * 2,
 				_ => AudioBitrate
 			};
-			args.AddRange(["-b:a", targetAudioBitrate.ToString()]);
+			argsMain.AddRange(["-b:a", targetAudioBitrate.ToString()]);
 
 			// Handle cropping configuration
 			if (crop)
@@ -288,14 +353,14 @@ public class VideoEncoder : IVideoEncoder
 				string croppingConfig = await croppingConfigTask;
 				if (!string.IsNullOrEmpty(croppingConfig))
 				{
-					args.AddRange(["-vf", croppingConfig]);
+					argsMain.AddRange(["-vf", croppingConfig]);
 				}
 			}
 
 			// Workaround for an opus/ffmpeg bug, see https://trac.ffmpeg.org/ticket/5718
 			if (AudioCodec == AudioCodec.OPUS)
 			{
-				args.AddRange(["-af", "aformat=channel_layouts=7.1|5.1|stereo"]);
+				argsMain.AddRange(["-af", "aformat=channel_layouts=7.1|5.1|stereo"]);
 			}
 
 			// Encode
@@ -306,7 +371,7 @@ public class VideoEncoder : IVideoEncoder
 				notify = false;
 			}
 
-			await FFmpeg.RunAsync(file, target, args, cancellationToken);
+			await FFmpeg.RunAsync(file, target, argsMain, cancellationToken);
 
 			// Cleanup
 			string ffmpegLogPath = Path.Join(Directory.GetCurrentDirectory(), "ffmpeg2pass-0.log");
