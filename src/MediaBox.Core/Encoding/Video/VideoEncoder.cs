@@ -213,7 +213,7 @@ public class VideoEncoder : IVideoEncoder
 			}
 
 			string? targetParent = Directory.GetParent(target)?.FullName;
-			if (targetParent != null && !Directory.Exists(targetParent))
+			if (!string.IsNullOrWhiteSpace(targetParent) && !Directory.Exists(targetParent))
 			{
 				Directory.CreateDirectory(targetParent);
 			}
