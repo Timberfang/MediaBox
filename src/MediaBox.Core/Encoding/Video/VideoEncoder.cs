@@ -124,9 +124,8 @@ public class VideoEncoder : IVideoEncoder
 	/// </summary>
 	/// <remarks>
 	///     The .mp4 container supports a limited feature set, but has better compatibility than .mkv.
-	///     The .webm container is a technical subset of the .mkv container; mediabox assumes that it is being chosen
-	///     for compatibility reasons, and will use VP9 video with OPUS audio to maintain high compatibility. If high
-	///     compatibility is not required, consider the .mkv container.
+	///     The .webm container is a technical subset of the .mkv container; only AV1, VP8, and VP9 are supported for
+	///     video, and Opus and Vorbis for audio. If additional codecs are required, consider the mkv container.
 	/// </remarks>
 	public VideoContainer VideoContainer { get; set; } = VideoContainer.MKV;
 
@@ -171,14 +170,6 @@ public class VideoEncoder : IVideoEncoder
 			VideoContainer.WEBM => ".webm",
 			_ => throw new ArgumentException(nameof(VideoContainer))
 		};
-
-		// Use standard/compatible .webm files
-		// If compatibility is not important, just use .mkv instead.
-		if (VideoContainer is VideoContainer.WEBM)
-		{
-			VideoCodec = VideoCodec.VP9;
-			AudioCodec = AudioCodec.OPUS;
-		}
 
 		// Begin building arguments for ffmpeg
 		// Don't set subtitle codec yet - needs a file-specific check

@@ -153,13 +153,14 @@ public static class CommandLine
 				destination = Path.Join(destination, Path.GetFileName(path));
 			}
 
-			if ((videoContainer == VideoContainer.WEBM &&
-				 videoCodec != VideoCodec.VP9 && videoCodec != VideoCodec.Copy) ||
-				(audioCodec != AudioCodec.OPUS && audioCodec != AudioCodec.Copy))
+			if ((videoContainer is VideoContainer.WEBM &&
+				 videoCodec is not (VideoCodec.VP9 or VideoCodec.AV1 or VideoCodec.Copy)) ||
+				audioCodec is not (AudioCodec.OPUS or AudioCodec.Copy))
 			{
 				Console.WriteLine(
-					"Container '.webm' always uses VP9 video and OPUS audio, ignoring configured codecs...");
+					"Container 'webm' does not support selected codecs, using defaults...");
 				videoContainer = VideoContainer.WEBM;
+				videoCodec = VideoCodec.VP9;
 				audioCodec = AudioCodec.OPUS;
 			}
 
