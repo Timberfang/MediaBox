@@ -88,14 +88,17 @@ public static partial class FFmpeg
 				}
 			});
 		}
-		catch (ExternalException)
+		catch (ExternalException e)
 		{
-			if (File.Exists(outPath))
+			if (!OpusErrorRegex().IsMatch(e.Message))
 			{
-				File.Delete(outPath);
-			}
+				if (File.Exists(outPath))
+				{
+					File.Delete(outPath);
+				}
 
-			throw;
+				throw;
+			}
 		}
 	}
 
@@ -246,4 +249,14 @@ public static partial class FFmpeg
 	/// <returns>A compiled regular expression pattern.</returns>
 	[GeneratedRegex("crop=.*", RegexOptions.RightToLeft)]
 	private static partial Regex CroppingRegex();
+
+	/// <summary>
+	///     The regular expression filter used to parse an error with ffmpeg and OPUS.
+	/// </summary>
+	/// <returns>A compiled regular expression pattern.</returns>
+	/// <remarks>
+	///     The error is benign, see https://trac.ffmpeg.org/ticket/11433 for details.
+	/// </remarks>
+	[GeneratedRegex(@"\[opus @ .*\] Error parsing Opus packet header.")]
+	private static partial Regex OpusErrorRegex();
 }
