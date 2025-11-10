@@ -23,7 +23,8 @@ public class AudioEncoder : IAudioEncoder
 		".wav",
 		".flac",
 		".ogg",
-		".opus"
+		".opus",
+		".m4a"
 	};
 
 	// Constructor
