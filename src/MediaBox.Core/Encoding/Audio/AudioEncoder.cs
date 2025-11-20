@@ -129,7 +129,7 @@ public class AudioEncoder : IAudioEncoder
 			}
 
 			// Now that we know the file exists, begin expensive tasks
-			Task<int> channelCountTask = FFmpeg.GetChannelCount(file);
+			Task<int> channelCountTask = FFmpeg.GetChannelCount(file, cancellationToken);
 			int targetAudioBitrate = await channelCountTask switch
 			{
 				>= 7 => Convert.ToInt32(AudioBitrate * 2.5),
