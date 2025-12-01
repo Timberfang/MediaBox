@@ -55,41 +55,42 @@ public static class CommandLine
 	};
 
 	// Transcoding
-	private static readonly Option<EncoderPreset> PresetOption = new("--preset")
+	private static readonly Option<EncoderPreset> PresetOption = new("--preset", "-p")
 	{
 		Description = "Quality preset for the media",
 		DefaultValueFactory = _ => EncoderPreset.Normal
 	};
 
-	private static readonly Option<VideoCodec> VideoCodecOption = new("--video-codec")
+	private static readonly Option<VideoCodec> VideoCodecOption = new("--video-codec", "--vcodec", "-c:v")
 	{
 		Description = "The codec to use for video",
 		DefaultValueFactory = _ => VideoCodec.Copy
 	};
 
-	private static readonly Option<AudioCodec> AudioCodecOption = new("--audio-codec")
+	private static readonly Option<AudioCodec> AudioCodecOption = new("--audio-codec", "--acodec", "-c:a")
 	{
 		Description = "The codec to use for audio",
 		DefaultValueFactory = _ => AudioCodec.Copy
 	};
 
-	private static readonly Option<SubtitleCodec> SubtitleCodecOption = new("--subtitle-codec")
+	private static readonly Option<SubtitleCodec> SubtitleCodecOption = new("--subtitle-codec", "--scodec", "-c:s")
 	{
 		Description = "The codec to use for subtitles",
 		DefaultValueFactory = _ => SubtitleCodec.Copy
 	};
 
-	private static readonly Option<ImageCodec> ImageCodecOption = new("--image-codec")
+	private static readonly Option<ImageCodec> ImageCodecOption = new("--image-codec", "--icodec", "-c:i")
 	{
 		Description = "The codec to use for images",
 		DefaultValueFactory = _ => ImageCodec.JPEG
 	};
 
-	private static readonly Option<VideoContainer> VideoContainerOption = new("--video-container")
-	{
-		Description = "The container to use for video",
-		DefaultValueFactory = _ => VideoContainer.MKV
-	};
+	private static readonly Option<VideoContainer> VideoContainerOption =
+		new("--video-container", "--container", "--format", "-f")
+		{
+			Description = "The container to use for video",
+			DefaultValueFactory = _ => VideoContainer.MKV
+		};
 
 	private static readonly Option<bool> ForceOption = new("--force")
 	{
