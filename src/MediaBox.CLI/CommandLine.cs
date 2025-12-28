@@ -149,6 +149,9 @@ public static class CommandLine
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
+			path = Path.GetFullPath(path);
+			destination = Path.GetFullPath(destination);
+
 			if (Path.HasExtension(path) && !Path.HasExtension(destination))
 			{
 				destination = Path.Join(destination, Path.GetFileName(path));
@@ -194,6 +197,9 @@ public static class CommandLine
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
 
+			path = Path.GetFullPath(path);
+			destination = Path.GetFullPath(destination);
+
 			if (Path.HasExtension(path) && !Path.HasExtension(destination))
 			{
 				destination = Path.Join(destination, Path.GetFileName(path));
@@ -226,6 +232,9 @@ public static class CommandLine
 			{
 				return Console.Error.WriteLineAsync("Destination cannot be null");
 			}
+
+			path = Path.GetFullPath(path);
+			destination = Path.GetFullPath(destination);
 
 			if (Path.HasExtension(path) && !Path.HasExtension(destination))
 			{
