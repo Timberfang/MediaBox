@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace MediaBox.Core.Utility;
+namespace MediaBox.Core.ExternalProcess;
 
 /// <summary>
 /// 	Manage external programs.
