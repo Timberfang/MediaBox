@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using MediaBox.Core.Encoding.Codecs;
 
-namespace MediaBox.Core.Utility;
+namespace MediaBox.Core.ExternalProcess;
 
 /// <summary>
 /// 	Manage FFmpeg commands.
