@@ -253,7 +253,7 @@ public static class CommandLine
 		// Root command
 		RootCommand rootCommand = new()
 		{
-			Description = "A wrapper for FFmpeg and libvips for video, audio, and image transcoding",
+			Description = "Manage your digital media.",
 			Subcommands = { transcodeCommand },
 			Options = { AboutOption, ThirdPartyOption }
 		};
