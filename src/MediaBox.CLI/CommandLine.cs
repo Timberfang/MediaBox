@@ -5,6 +5,7 @@ using MediaBox.Core.Encoding.Audio;
 using MediaBox.Core.Encoding.Codecs;
 using MediaBox.Core.Encoding.Image;
 using MediaBox.Core.Encoding.Video;
+using MediaBox.Core.OpticalMedia;
 using MediaBox.Core.Utility;
 
 namespace MediaBox.CLI;
@@ -252,12 +253,29 @@ public static class CommandLine
 		{
 			videoCommand, audioCommand, imageCommand
 		};
+		transcodeCommand.Aliases.Add("convert");
+
+		// Backup command
+		Command backupCommand = new("backup", "Backup an optical disk to the computer")
+		{
+			DestinationArgument
+		};
+		backupCommand.SetAction(parseResult =>
+		{
+			string? destination = parseResult.GetValue(DestinationArgument);
+			if (destination is null)
+			{
+				return Console.Error.WriteLineAsync("Destination cannot be null");
+			}
+
+			return BackupDisk(destination, ct);
+		});
 
 		// Root command
 		RootCommand rootCommand = new()
 		{
 			Description = "Manage your digital media.",
-			Subcommands = { transcodeCommand },
+			Subcommands = { transcodeCommand, backupCommand },
 			Options = { AboutOption, ThirdPartyOption }
 		};
 		rootCommand.SetAction(parseResult =>
@@ -399,6 +417,28 @@ public static class CommandLine
 		try
 		{
 			await imageEncoder.EncodeAsync();
+			return 0;
+		}
+		catch (OperationCanceledException)
+		{
+			await Console.Error.WriteLineAsync("The operation was aborted");
+			return 1;
+		}
+	}
+
+	/// <summary>
+	/// 	Creates a backup of an optical disk.
+	/// </summary>
+	/// <param name="destination">Path where the backup will be created.</param>
+	/// <param name="cancellationToken">Token to cancel the backup.</param>
+	/// <returns>A Task object.</returns>
+	private static async Task<int> BackupDisk(string destination, CancellationToken cancellationToken)
+	{
+		OpticalDrive drive = new();
+		drive.DiskBackupStarted += (_, volumeLabel) => Console.WriteLine($"Copying disk: {volumeLabel}");
+		try
+		{
+			await drive.BackupAsync(destination, cts: cancellationToken);
 			return 0;
 		}
 		catch (OperationCanceledException)
