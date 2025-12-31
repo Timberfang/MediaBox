@@ -9,6 +9,9 @@ using MediaBox.Core.Utility;
 
 namespace MediaBox.CLI;
 
+/// <summary>
+/// 	Commandline Interface (CLI) handler.
+/// </summary>
 public static class CommandLine
 {
 	// IO
