@@ -117,7 +117,7 @@ public static partial class FFmpeg
 		string ffmpeg = ProcessManager.GetPath("ffmpeg");
 		if (!File.Exists(path))
 		{
-			throw new FileNotFoundException($"File at {path} does not exist");
+			throw new FileNotFoundException(path);
 		}
 
 		List<string> args =
@@ -146,7 +146,7 @@ public static partial class FFmpeg
 		string ffprobe = ProcessManager.GetPath("ffprobe");
 		if (!File.Exists(path))
 		{
-			throw new FileNotFoundException($"File at {path} does not exist");
+			throw new FileNotFoundException(path);
 		}
 
 		List<string> args =
@@ -181,7 +181,7 @@ public static partial class FFmpeg
 		return float.TryParse(ffprobeOutput, out float durationFloat)
 			? (int)durationFloat
 			: throw new InvalidDataException(
-				$"{ffprobeOutput} (from file '{Path.GetFileNameWithoutExtension(path)}') is not a float");
+				$"'{ffprobeOutput}' (from file '{Path.GetFileNameWithoutExtension(path)}') is not a float");
 	}
 
 	/// <summary>

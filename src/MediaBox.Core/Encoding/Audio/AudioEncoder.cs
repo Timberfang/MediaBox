@@ -64,8 +64,17 @@ public class AudioEncoder : IAudioEncoder
 		{
 			EncoderPreset.Quality => 128000,
 			EncoderPreset.Normal => 96000,
-			_ => throw new ArgumentOutOfRangeException(nameof(Preset))
+			_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
 		};
+
+	private string? Extension => AudioCodec switch
+	{
+		AudioCodec.Copy => null,
+		AudioCodec.MP3 => ".mp3",
+		AudioCodec.AAC => ".aac",
+		AudioCodec.OPUS => ".opus",
+		_ => throw new ArgumentOutOfRangeException(nameof(AudioCodec), AudioCodec, "Unsupported audio codec.")
+	};
 
 	/// <inheritdoc />
 	public AudioCodec AudioCodec { get; set; } = AudioCodec.Copy;
@@ -103,21 +112,13 @@ public class AudioEncoder : IAudioEncoder
 		foreach (string file in _files)
 		{
 			// Set up paths
-			string extension = AudioCodec switch
-			{
-				AudioCodec.Copy => Path.GetExtension(file),
-				AudioCodec.MP3 => ".mp3",
-				AudioCodec.AAC => ".aac",
-				AudioCodec.OPUS => ".opus",
-				_ => throw new ArgumentException(nameof(AudioCodec))
-			};
-			string target = Path.ChangeExtension(GetTargetPath(file), extension);
+			string target = GetExtension(GetTargetPath(file));
 			if (Path.Exists(target))
 			{
 				continue;
 			}
 
-			if (!Force && Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase))
+			if (!Force && Path.GetExtension(file).Equals(Extension, StringComparison.OrdinalIgnoreCase))
 			{
 				continue;
 			}
@@ -149,6 +150,8 @@ public class AudioEncoder : IAudioEncoder
 			await FFmpeg.RunAsync(file, target, args, cancellationToken);
 		}
 	}
+
+	private string GetExtension(string path) => Path.ChangeExtension(path, Extension == null ? Path.GetExtension(path) : Extension);
 
 	/// <summary>
 	///     Replicates the directory structure of the input path in the output path.
