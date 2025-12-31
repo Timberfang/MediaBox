@@ -5,6 +5,8 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<PublishAot>true</PublishAot>
+		<!-- Required to workaround bug with .NET 10, see https://github.com/dotnet/sdk/issues/51766 -->
+		<PublishSelfContained>true</PublishSelfContained>
 		<InvariantGlobalization>true</InvariantGlobalization>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 	</PropertyGroup>
