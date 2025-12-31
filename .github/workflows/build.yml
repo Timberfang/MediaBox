@@ -1,0 +1,61 @@
+name: Build
+permissions:
+  contents: write
+on:
+  workflow_dispatch:
+  push:
+    tags: [ v*.*.* ]
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            runtime: win-x64
+          - name: Linux
+            os: ubuntu-latest
+            runtime: linux-x64
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+    - uses: actions/cache@v3
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+    - name: Restore dependencies
+      run: dotnet restore src/MediaBox.CLI/MediaBox.CLI.csproj --runtime ${{ matrix.runtime }}
+    - name: Build
+      run: dotnet publish src/MediaBox.CLI/MediaBox.CLI.csproj --no-restore --configuration Release --runtime ${{ matrix.runtime }}
+    - name:  Package release
+      run: |
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          zip -j mediabox_linux-x64.zip \
+            ./artifacts/publish/MediaBox.CLI/release_linux-x64/mediabox \
+            ./artifacts/publish/MediaBox.CLI/release_linux-x64/libvips.so.42 \
+            ./LICENSE \
+            ./ThirdPartyNotices.txt
+        elif [ "$RUNNER_OS" == "Windows" ]; then
+          7z a mediabox_win-x64.zip \
+            ./artifacts/publish/MediaBox.CLI/release_win-x64/mediabox.exe \
+            ./artifacts/publish/MediaBox.CLI/release_win-x64/libvips-42.dll \
+            ./LICENSE \
+            ./ThirdPartyNotices.txt
+        else
+          echo "$RUNNER_OS not supported"
+          exit 1
+        fi
+      shell: bash
+    - name: Upload release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          mediabox_linux-x64.zip
+          mediabox_win-x64.zip

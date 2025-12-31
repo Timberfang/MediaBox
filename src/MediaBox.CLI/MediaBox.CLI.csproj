@@ -6,6 +6,9 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<PublishAot>true</PublishAot>
+		<!-- Required to workaround bug with .NET 10, see https://github.com/dotnet/sdk/issues/51766 -->
+		<!-- Not sure why CLI requires SelfContained but Core works with PublishSelfContained -->
+		<SelfContained>true</SelfContained>
 		<InvariantGlobalization>true</InvariantGlobalization>
 		<AssemblyName>mediabox</AssemblyName>
 	</PropertyGroup>
