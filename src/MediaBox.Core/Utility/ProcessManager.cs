@@ -3,8 +3,20 @@ using System.Runtime.InteropServices;
 
 namespace MediaBox.Core.Utility;
 
+/// <summary>
+/// 	Manage external programs.
+/// </summary>
 internal static class ProcessManager
 {
+	/// <summary>
+	/// 	Launch an external program.
+	/// </summary>
+	/// <param name="path">Path to the external program or its name if its available on the user's PATH.</param>
+	/// <param name="arguments">Arguments to pass directly to the external program.</param>
+	/// <param name="ignoreErrors">If set to true, ignore non-zero exit codes and standard error (STDERR) output.</param>
+	/// <param name="environmentVariables">Environment variables to be set for the external program.</param>
+	/// <returns>Standard output (STDOUT) of the external program.</returns>
+	/// <exception cref="ExternalException">Thrown if the external program returns errors and IgnoreErrors is not set to true.</exception>
 	public static string Start(string path, IReadOnlyList<string> arguments, bool ignoreErrors = false,
 		Dictionary<string, string>? environmentVariables = null)
 	{
@@ -34,6 +46,16 @@ internal static class ProcessManager
 		return output;
 	}
 
+
+	/// <inheritdoc cref="Start"/>
+	/// <summary>
+	/// 	Launch an external program asyncrhonously.
+	/// </summary>
+	/// <param name="path">Path to the external program or its name if its available on the user's PATH.</param>
+	/// <param name="arguments">Arguments to pass directly to the external program.</param>
+	/// <param name="ignoreErrors">If set to true, ignore non-zero exit codes and standard error (STDERR) output.</param>
+	/// <param name="environmentVariables">Environment variables to be set for the external program.</param>
+	/// <param name="ct"><see cref="CancellationToken">, which, when triggered, will stop the launched program.</see></param>
 	public static async Task<string> StartAsync(string path, IReadOnlyList<string> arguments, bool ignoreErrors = false,
 		Dictionary<string, string>? environmentVariables = null, CancellationToken ct = default)
 	{
@@ -64,6 +86,12 @@ internal static class ProcessManager
 		return output;
 	}
 
+	/// <summary>
+	/// 	Get the absolute path to an external program from its name.
+	/// </summary>
+	/// <param name="name">Name of the external program.</param>
+	/// <returns>Absolute path of the external program.</returns>
+	/// <exception cref="FileNotFoundException">Thrown when the external program could not be found.</exception>
 	public static string GetPath(string name)
 	{
 		name = ConvertPath(name);
@@ -84,6 +112,15 @@ internal static class ProcessManager
 		return path;
 	}
 
+	/// <summary>
+	/// 	Test if an external program exists.
+	/// </summary>
+	/// <param name="name">Name of the external program.</param>
+	/// <param name="local">If false, search the user's PATH in addition to the parent program's directory.</param>
+	/// <returns>True if the program was found and false if it was not.</returns>
+	/// <remarks>
+	/// 	If local is false, this requires 'where.exe' to be available on Windows or 'which' to be available on MacOS or Linux.
+	/// </remarks>
 	public static bool Exists(string name, bool local = false)
 	{
 		name = ConvertPath(name);
@@ -114,6 +151,14 @@ internal static class ProcessManager
 		}
 	}
 
+	/// <summary>
+	/// 	Add or remove the '.exe' file extension as needed.
+	/// </summary>
+	/// <param name="path">Path to be converted.</param>
+	/// <returns>The converted path.</returns>
+	/// <remarks>
+	/// 	On Windows, this adds the '.exe' suffix if it's missing; on all other platforms, it removes it if it's present.
+	/// </remarks>
 	public static string ConvertPath(string path)
 	{
 		if (OperatingSystem.IsWindows())
@@ -134,6 +179,13 @@ internal static class ProcessManager
 		return path;
 	}
 
+	/// <summary>
+	/// 	Forcefully stop a process.
+	/// </summary>
+	/// <param name="process">The <see cref="Process"/> object of the process.</param>
+	/// <remarks>
+	/// 	This is a forceful, non-graceful method of stopping a process. Use with caution.
+	/// </remarks>
 	private static void Stop(Process process)
 	{
 		if (!process.HasExited)

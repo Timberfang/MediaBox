@@ -1,5 +1,8 @@
 namespace MediaBox.Core.Utility;
 
+/// <summary>
+/// 	Store the program's copyright information.
+/// </summary>
 public static class License
 {
 	/// <summary>

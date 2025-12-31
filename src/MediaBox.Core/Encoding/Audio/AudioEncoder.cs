@@ -67,6 +67,12 @@ public class AudioEncoder : IAudioEncoder
 			_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
 		};
 
+	/// <summary>
+	/// 	The corresponding extension for the configured audio codec.
+	/// </summary>
+	/// <remarks>
+	/// 	If AudioCodec is Copy, the extension will be set to null, and must be copied from the input file.
+	/// </remarks>
 	private string? Extension => AudioCodec switch
 	{
 		AudioCodec.Copy => null,
@@ -151,6 +157,11 @@ public class AudioEncoder : IAudioEncoder
 		}
 	}
 
+	/// <summary>
+	///		Get the correct extension for the target path.
+	/// </summary>
+	/// <param name="path">The path to get an extension for.</param>
+	/// <returns>The correct extension for the audio codec.</returns>
 	private string GetExtension(string path) => Path.ChangeExtension(path, Extension == null ? Path.GetExtension(path) : Extension);
 
 	/// <summary>
