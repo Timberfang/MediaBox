@@ -3,6 +3,9 @@ using MediaBox.Core.Encoding.Codecs;
 
 namespace MediaBox.Core.Encoding.Video;
 
+/// <summary>
+/// 	Interface for video encoders.
+/// </summary>
 public interface IVideoEncoder : IAudioEncoder
 {
 	/// <summary>

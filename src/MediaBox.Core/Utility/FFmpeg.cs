@@ -4,6 +4,9 @@ using MediaBox.Core.Encoding.Codecs;
 
 namespace MediaBox.Core.Utility;
 
+/// <summary>
+/// 	Manage FFmpeg commands.
+/// </summary>
 public static partial class FFmpeg
 {
 	/// <summary>

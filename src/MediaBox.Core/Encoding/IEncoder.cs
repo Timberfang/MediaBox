@@ -1,5 +1,8 @@
 namespace MediaBox.Core.Encoding;
 
+/// <summary>
+/// 	Interface for media encoders.
+/// </summary>
 public interface IEncoder
 {
 	/// <summary>

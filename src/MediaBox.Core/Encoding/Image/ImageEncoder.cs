@@ -3,6 +3,9 @@ using NetVips;
 
 namespace MediaBox.Core.Encoding.Image;
 
+/// <summary>
+/// 	Encode images using libvips.
+/// </summary>
 public class ImageEncoder : IImageEncoder
 {
 	// IO
@@ -64,6 +67,9 @@ public class ImageEncoder : IImageEncoder
 	/// <inheritdoc />
 	public ImageCodec ImageCodec { get; set; }
 
+	/// <summary>
+	/// 	The corresponding extension for the configured image codec.
+	/// </summary>
 	private string Extension => ImageCodec switch
 	{
 		ImageCodec.JPEG => ".jpg",

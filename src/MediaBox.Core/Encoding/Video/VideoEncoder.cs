@@ -37,6 +37,7 @@ public class VideoEncoder : IVideoEncoder
 	/// <param name="inPath">The path to the input video file.</param>
 	/// <param name="outPath">The path to save the encoded video file.</param>
 	/// <param name="preset">The encoding preset to use: "Quality", "Normal", or "Fast".</param>
+	/// <exception cref="FileNotFoundException">Thrown if the given input path does not exist.</exception>
 	public VideoEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal)
 	{
 		InPath = inPath;
@@ -119,6 +120,9 @@ public class VideoEncoder : IVideoEncoder
 			_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
 		};
 
+	/// <summary>
+	/// 	Supported video containers.
+	/// </summary>
 	private readonly VideoContainer[] _supportedContainers = [
 		VideoContainer.MKV,
 		VideoContainer.MP4,
@@ -146,6 +150,9 @@ public class VideoEncoder : IVideoEncoder
 		}
 	} = VideoContainer.MKV;
 
+	/// <summary>
+	/// 	The corresponding extension for the configured video container.
+	/// </summary>
 	private string Extension => Container switch
 	{
 		VideoContainer.MKV => ".mkv",
@@ -185,6 +192,7 @@ public class VideoEncoder : IVideoEncoder
 	public async Task EncodeAsync() => await EncodeAsync(false);
 
 	/// <inheritdoc cref="EncodeAsync()" />
+	/// <exception cref="PlatformNotSupportedException">Thrown when the current operating system is neither Windows nor a Unix-like system.</exception>
 	public async Task EncodeAsync(bool crop, CancellationToken cancellationToken = default)
 	{
 		// Begin building arguments for ffmpeg
@@ -374,7 +382,6 @@ public class VideoEncoder : IVideoEncoder
 			if (notify)
 			{
 				FileEncodingStarted?.Invoke(this, Path.GetFileName(file));
-				// ReSharper disable once RedundantAssignment
 				notify = false;
 			}
 

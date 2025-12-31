@@ -1,5 +1,8 @@
 namespace MediaBox.CLI;
 
+/// <summary>
+/// 	Entrypoint into the MediaBox CLI program.
+/// </summary>
 internal static class Program
 {
 	private static async Task<int> Main(string[] args)

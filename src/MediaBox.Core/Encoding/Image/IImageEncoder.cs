@@ -2,6 +2,9 @@ using MediaBox.Core.Encoding.Codecs;
 
 namespace MediaBox.Core.Encoding.Image;
 
+/// <summary>
+/// 	Interface for image encoders.
+/// </summary>
 public interface IImageEncoder : IEncoder
 {
 	/// <summary>
