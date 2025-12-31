@@ -64,6 +64,14 @@ public class ImageEncoder : IImageEncoder
 	/// <inheritdoc />
 	public ImageCodec ImageCodec { get; set; }
 
+	private string Extension => ImageCodec switch
+	{
+		ImageCodec.JPEG => ".jpg",
+		ImageCodec.PNG => ".png",
+		ImageCodec.WEBP => ".webp",
+		_ => throw new ArgumentOutOfRangeException(nameof(ImageCodec), ImageCodec, "Unsupported image codec.")
+	};
+
 	// Shared
 	/// <inheritdoc />
 	public string InPath { get; set; }
@@ -93,20 +101,13 @@ public class ImageEncoder : IImageEncoder
 		await Task.Run(() => Parallel.ForEach(_files, file =>
 		{
 			// Set up paths
-			string extension = ImageCodec switch
-			{
-				ImageCodec.JPEG => ".jpg",
-				ImageCodec.PNG => ".png",
-				ImageCodec.WEBP => ".webp",
-				_ => throw new ArgumentOutOfRangeException(nameof(ImageCodec))
-			};
-			string target = Path.ChangeExtension(GetTargetPath(file), extension);
+			string target = Path.ChangeExtension(GetTargetPath(file), Extension);
 			if (Path.Exists(target))
 			{
 				return;
 			}
 
-			if (!Force && Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase))
+			if (!Force && Path.GetExtension(file).Equals(Extension, StringComparison.OrdinalIgnoreCase))
 			{
 				return;
 			}
