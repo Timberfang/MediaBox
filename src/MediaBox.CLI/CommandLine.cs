@@ -307,7 +307,7 @@ public static class CommandLine
 			VideoCodec = videoCodec,
 			AudioCodec = audioCodec,
 			SubtitleCodec = subtitleCodec,
-			VideoContainer = videoContainer,
+			Container = videoContainer,
 			Force = force
 		};
 		videoEncoder.FileEncodingStarted +=

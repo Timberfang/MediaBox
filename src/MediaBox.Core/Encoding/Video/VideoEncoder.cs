@@ -73,7 +73,7 @@ public class VideoEncoder : IVideoEncoder
 		{
 			EncoderPreset.Quality => 6,
 			EncoderPreset.Normal => 10,
-			_ => throw new ArgumentOutOfRangeException()
+			_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
 		};
 
 	/// <summary>
@@ -95,7 +95,7 @@ public class VideoEncoder : IVideoEncoder
 				{
 					EncoderPreset.Quality => 27,
 					EncoderPreset.Normal => 33,
-					_ => throw new ArgumentOutOfRangeException(nameof(Preset))
+					_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
 				};
 			}
 
@@ -103,7 +103,7 @@ public class VideoEncoder : IVideoEncoder
 			{
 				EncoderPreset.Quality => 22,
 				EncoderPreset.Normal => 28,
-				_ => throw new ArgumentOutOfRangeException(nameof(Preset))
+				_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
 			};
 		}
 	}
@@ -116,8 +116,14 @@ public class VideoEncoder : IVideoEncoder
 		{
 			EncoderPreset.Quality => 128000,
 			EncoderPreset.Normal => 96000,
-			_ => throw new ArgumentOutOfRangeException(nameof(Preset))
+			_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
 		};
+
+	private readonly VideoContainer[] _supportedContainers = [
+		VideoContainer.MKV,
+		VideoContainer.MP4,
+		VideoContainer.WEBM
+	];
 
 	/// <summary>
 	///     The target container for the video file.
@@ -127,7 +133,26 @@ public class VideoEncoder : IVideoEncoder
 	///     The .webm container is a technical subset of the .mkv container; only AV1, VP8, and VP9 are supported for
 	///     video, and Opus and Vorbis for audio. If additional codecs are required, consider the mkv container.
 	/// </remarks>
-	public VideoContainer VideoContainer { get; set; } = VideoContainer.MKV;
+	public VideoContainer Container
+	{
+		get;
+		set
+		{
+			if (!_supportedContainers.Contains(value))
+			{
+				throw new ArgumentOutOfRangeException(nameof(Container), Container, "Unsupported video container.");
+			}
+			field = value;
+		}
+	} = VideoContainer.MKV;
+
+	private string Extension => Container switch
+	{
+		VideoContainer.MKV => ".mkv",
+		VideoContainer.MP4 => ".mp4",
+		VideoContainer.WEBM => ".webm",
+		_ => throw new ArgumentOutOfRangeException(nameof(Container), Container, "Unsupported video container.")
+	};
 
 	// Shared
 	/// <inheritdoc />
@@ -162,15 +187,6 @@ public class VideoEncoder : IVideoEncoder
 	/// <inheritdoc cref="EncodeAsync()" />
 	public async Task EncodeAsync(bool crop, CancellationToken cancellationToken = default)
 	{
-		// Configure video container
-		string extension = VideoContainer switch
-		{
-			VideoContainer.MKV => ".mkv",
-			VideoContainer.MP4 => ".mp4",
-			VideoContainer.WEBM => ".webm",
-			_ => throw new ArgumentException(nameof(VideoContainer))
-		};
-
 		// Begin building arguments for ffmpeg
 		// Don't set subtitle codec yet - needs a file-specific check
 		List<string> argsMain;
@@ -179,7 +195,7 @@ public class VideoEncoder : IVideoEncoder
 		{
 			PlatformID.Win32NT => "NUL",
 			PlatformID.Unix => "/dev/null",
-			_ => throw new PlatformNotSupportedException(Environment.OSVersion.Platform.ToString())
+			_ => throw new PlatformNotSupportedException($"Unspported platform: '{Environment.OSVersion.Platform}'.")
 		};
 		if (VideoCodec is VideoCodec.VP9)
 		{
@@ -282,13 +298,13 @@ public class VideoEncoder : IVideoEncoder
 			bool notify = true;
 
 			// Set up paths
-			string target = Path.ChangeExtension(GetTargetPath(file), extension);
+			string target = Path.ChangeExtension(GetTargetPath(file), Extension);
 			if (Path.Exists(target))
 			{
 				continue;
 			}
 
-			if (!Force && Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase))
+			if (!Force && Path.GetExtension(file).Equals(Extension, StringComparison.OrdinalIgnoreCase))
 			{
 				continue;
 			}
@@ -304,11 +320,11 @@ public class VideoEncoder : IVideoEncoder
 			Task<string> croppingConfigTask = FFmpeg.GetCroppingConfig(file, cancellationToken);
 
 			// Fix subtitle codec if needed - .mp4 files use MOV_TEXT, which other formats don't support.
-			if (Path.GetExtension(file).Equals(".mp4") && VideoContainer is not VideoContainer.MP4)
+			if (Path.GetExtension(file).Equals(".mp4") && Container is not VideoContainer.MP4)
 			{
 				argsMain.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec.SRT]);
 			}
-			else if (!Path.GetExtension(file).Equals(".mp4") && VideoContainer is VideoContainer.MP4)
+			else if (!Path.GetExtension(file).Equals(".mp4") && Container is VideoContainer.MP4)
 			{
 				argsMain.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec.MOVTEXT]);
 			}
