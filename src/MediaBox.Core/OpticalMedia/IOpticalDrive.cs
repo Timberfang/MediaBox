@@ -32,7 +32,7 @@ public interface IOpticalDrive
 	/// <summary>
 	///     Wait for a disk to be inserted.
 	/// </summary>
-	public void WaitForDisk();
+	public Task WaitForDiskAsync();
 
 	/// <summary>
 	///     Backup all valid files from the optical disk to the output path.

@@ -82,9 +82,23 @@ public partial class OpticalDrive : IOpticalDrive
 	}
 
 	/// <inheritdoc />
-	public void WaitForDisk()
+	public async Task WaitForDiskAsync() => await WaitForDiskAsync(1000, -1);
+
+	/// <inheritdoc cref="WaitForDiskAsync()" />
+	/// <param name="sleepDuration">Time in milliseconds to wait between disk checks.</param>
+	/// <param name="timeout">Maximum time in milliseconds to wait for a disk. If set to a negative number, wait indefinitely.</param>
+	public async Task WaitForDiskAsync(int sleepDuration, int timeout)
 	{
-		while (!IsReady) { Thread.Sleep(1000); }
+		using CancellationTokenSource cts = new();
+		if (timeout >= 0) { cts.CancelAfter(timeout); }
+		try
+		{
+			while (!IsReady) { await Task.Delay(sleepDuration, cts.Token); }
+		}
+		catch (OperationCanceledException e)
+		{
+			throw new TimeoutException($"Optical disk was not inserted within the alotted time.", e);
+		}
 	}
 
 	/// <inheritdoc cref="BackupAsync()" />
