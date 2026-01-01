@@ -1,9 +1,19 @@
-using MediaBox.Core.OpticalMedia;
-
 namespace MediaBox.Core.ExternalProcess;
 
+/// <summary>
+/// 	Manage MakeMKV commands.
+/// </summary>
 public static class MakeMKV
 {
+	/// <summary>
+	/// 	Run MakeMKV with the given configuration.
+	/// </summary>
+	/// <param name="outPath">The path where the output file(s) will be written.</param>
+	/// <param name="arguments">Arguments to be passed to MakeMKV.</param>
+	/// <param name="cts">Cancellation token to cancel MakeMKV operations.</param>
+	/// <returns></returns>
+	/// <exception cref="FileNotFoundException"></exception>
+	/// <exception cref="IOException"></exception>
 	public static async Task RunAsync(string outPath, IEnumerable<string> arguments, CancellationToken cts = default)
 	{
 		// Get path of makemkvcon64/makemkvcon
