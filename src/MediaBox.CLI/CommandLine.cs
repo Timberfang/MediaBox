@@ -435,7 +435,18 @@ public static class CommandLine
 	private static async Task<int> BackupDisk(string destination, CancellationToken cancellationToken)
 	{
 		OpticalDrive drive = new();
+		if (drive.DriveInfo == null)
+		{
+			await Console.Error.WriteLineAsync("Backup failed: no optical drive detected");
+			return 1;
+		}
 		drive.DiskBackupStarted += (_, volumeLabel) => Console.WriteLine($"Copying disk: {volumeLabel}");
+		if (!drive.IsReady)
+		{
+			Console.WriteLine("Waiting for disk, press Control+C to cancel...");
+			drive.Open();
+			await drive.WaitForDiskAsync(1000, -1);
+		}
 		try
 		{
 			await drive.BackupAsync(destination, cts: cancellationToken);
