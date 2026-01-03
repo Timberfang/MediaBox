@@ -8,8 +8,8 @@ internal static class Program
 	private static async Task<int> Main(string[] args)
 	{
 		CancellationTokenSource cts = new();
-		Console.CancelKeyPress += (_, _) => cts.Cancel();
-		AppDomain.CurrentDomain.ProcessExit += (_, _) => cts.Cancel();
+		SignalHandler handler = new(cts);
+		handler.RegisterSignalHandlers();
 
 		if (args.Length > 0)
 		{

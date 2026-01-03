@@ -11,6 +11,8 @@
 		<SelfContained>true</SelfContained>
 		<InvariantGlobalization>true</InvariantGlobalization>
 		<AssemblyName>mediabox</AssemblyName>
+		<!-- Required for importing libraries; this project does not directly use any unsafe code. -->
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
