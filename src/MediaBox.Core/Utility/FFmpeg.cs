@@ -242,7 +242,18 @@ public static partial class FFmpeg
 			"cropdetect",
 			"-an"
 		];
-		string ffmpegOutput = await AnalyzeAsync(path, argsBefore, argsAfter, cts);
+		string ffmpegOutput = "";
+		try
+		{
+			ffmpegOutput = await AnalyzeAsync(path, argsBefore, argsAfter, cts);
+		}
+		catch (ExternalException e)
+		{
+			if (!DTSErrorRegex().IsMatch(e.Message))
+			{
+				throw;
+			}
+		}
 		return CroppingRegex().Match(ffmpegOutput).Groups[0].Value;
 	}
 
@@ -262,4 +273,15 @@ public static partial class FFmpeg
 	/// </remarks>
 	[GeneratedRegex(@"\[opus @ .*\] Error parsing Opus packet header.")]
 	private static partial Regex OpusErrorRegex();
+
+	/// <summary>
+	/// 	The regular expression filter used to parse an error with ffmpeg and media timestamps.
+	/// </summary>
+	/// <returns>A compiled regular expression pattern.</returns>
+	/// <remarks>
+	/// 	The error is benign when the file is passed to the null format, as it is here.
+	/// 	See https://stackoverflow.com/questions/46231348/ffmpeg-what-does-non-monotonically-increasing-dts-mean for details.
+	/// </remarks>
+	[GeneratedRegex(@"\[null @ .*\] Application provided invalid, non monotonically increasing dts to muxer in stream \d:.*")]
+	private static partial Regex DTSErrorRegex();
 }
