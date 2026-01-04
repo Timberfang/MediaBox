@@ -1,4 +1,5 @@
 using MediaBox.Core.Encoding.Codecs;
+using MediaBox.Core.Utility;
 using NetVips;
 
 namespace MediaBox.Core.Encoding.Image;
@@ -67,17 +68,6 @@ public class ImageEncoder : IImageEncoder
 	/// <inheritdoc />
 	public ImageCodec ImageCodec { get; set; }
 
-	/// <summary>
-	/// 	The corresponding extension for the configured image codec.
-	/// </summary>
-	private string Extension => ImageCodec switch
-	{
-		ImageCodec.JPEG => ".jpg",
-		ImageCodec.PNG => ".png",
-		ImageCodec.WEBP => ".webp",
-		_ => throw new ArgumentOutOfRangeException(nameof(ImageCodec), ImageCodec, "Unsupported image codec.")
-	};
-
 	// Shared
 	/// <inheritdoc />
 	public string InPath { get; set; }
@@ -107,13 +97,10 @@ public class ImageEncoder : IImageEncoder
 		await Task.Run(() => Parallel.ForEach(_files, file =>
 		{
 			// Set up paths
-			string target = Path.ChangeExtension(GetTargetPath(file), Extension);
-			if (Path.Exists(target))
-			{
-				return;
-			}
-
-			if (!Force && Path.GetExtension(file).Equals(Extension, StringComparison.OrdinalIgnoreCase))
+			string target = FileManager.GetTargetPath(file, InPath, OutPath);
+			string extension = FileManager.GetExtension(ImageCodec);
+			target = Path.ChangeExtension(target, extension);
+			if (Path.Exists(target) || (!Force && Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase)))
 			{
 				return;
 			}
@@ -130,14 +117,4 @@ public class ImageEncoder : IImageEncoder
 			image.WriteToFile(target, imageOptions);
 		}));
 	}
-
-	/// <summary>
-	///     Replicates the directory structure of the input path in the output path.
-	/// </summary>
-	/// <param name="path">The path to the file to be processed.</param>
-	/// <returns>The path to the file in the output directory.</returns>
-	private string GetTargetPath(string path) =>
-		Path.GetExtension(OutPath).Length == 0
-			? Path.Join(OutPath, path.Replace(InPath, string.Empty))
-			: OutPath;
 }

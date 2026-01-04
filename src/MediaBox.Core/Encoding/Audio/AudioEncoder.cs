@@ -67,21 +67,6 @@ public class AudioEncoder : IAudioEncoder
 			_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
 		};
 
-	/// <summary>
-	/// 	The corresponding extension for the configured audio codec.
-	/// </summary>
-	/// <remarks>
-	/// 	If AudioCodec is Copy, the extension will be set to null, and must be copied from the input file.
-	/// </remarks>
-	private string? Extension => AudioCodec switch
-	{
-		AudioCodec.Copy => null,
-		AudioCodec.MP3 => ".mp3",
-		AudioCodec.AAC => ".aac",
-		AudioCodec.OPUS => ".opus",
-		_ => throw new ArgumentOutOfRangeException(nameof(AudioCodec), AudioCodec, "Unsupported audio codec.")
-	};
-
 	/// <inheritdoc />
 	public AudioCodec AudioCodec { get; set; } = AudioCodec.Copy;
 
@@ -118,13 +103,10 @@ public class AudioEncoder : IAudioEncoder
 		foreach (string file in _files)
 		{
 			// Set up paths
-			string target = GetExtension(GetTargetPath(file));
-			if (Path.Exists(target))
-			{
-				continue;
-			}
-
-			if (!Force && Path.GetExtension(file).Equals(Extension, StringComparison.OrdinalIgnoreCase))
+			string target = FileManager.GetTargetPath(file, InPath, OutPath);
+			string extension = FileManager.GetExtension(AudioCodec, target);
+			target = Path.ChangeExtension(target, extension);
+			if (Path.Exists(target) || (!Force && Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase)))
 			{
 				continue;
 			}
@@ -156,21 +138,4 @@ public class AudioEncoder : IAudioEncoder
 			await FFmpeg.RunAsync(file, target, args, cancellationToken);
 		}
 	}
-
-	/// <summary>
-	///		Get the correct extension for the target path.
-	/// </summary>
-	/// <param name="path">The path to get an extension for.</param>
-	/// <returns>The correct extension for the audio codec.</returns>
-	private string GetExtension(string path) => Path.ChangeExtension(path, Extension == null ? Path.GetExtension(path) : Extension);
-
-	/// <summary>
-	///     Replicates the directory structure of the input path in the output path.
-	/// </summary>
-	/// <param name="path">The path to the file to be processed.</param>
-	/// <returns>The path to the file in the output directory.</returns>
-	private string GetTargetPath(string path) =>
-		Path.GetExtension(OutPath).Length == 0
-			? Path.Join(OutPath, path.Replace(InPath, string.Empty))
-			: Path.ChangeExtension(OutPath, ".mkv");
 }
