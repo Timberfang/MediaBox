@@ -150,17 +150,6 @@ public class VideoEncoder : IVideoEncoder
 		}
 	} = VideoContainer.MKV;
 
-	/// <summary>
-	/// 	The corresponding extension for the configured video container.
-	/// </summary>
-	private string Extension => Container switch
-	{
-		VideoContainer.MKV => ".mkv",
-		VideoContainer.MP4 => ".mp4",
-		VideoContainer.WEBM => ".webm",
-		_ => throw new ArgumentOutOfRangeException(nameof(Container), Container, "Unsupported video container.")
-	};
-
 	// Shared
 	/// <inheritdoc />
 	public string InPath { get; set; }
@@ -306,13 +295,10 @@ public class VideoEncoder : IVideoEncoder
 			bool notify = true;
 
 			// Set up paths
-			string target = Path.ChangeExtension(GetTargetPath(file), Extension);
-			if (Path.Exists(target))
-			{
-				continue;
-			}
-
-			if (!Force && Path.GetExtension(file).Equals(Extension, StringComparison.OrdinalIgnoreCase))
+			string target = FileManager.GetTargetPath(file, InPath, OutPath);
+			string extension = FileManager.GetExtension(Container);
+			target = Path.ChangeExtension(target, extension);
+			if (Path.Exists(target) || (!Force && Path.GetExtension(file).Equals(extension, StringComparison.OrdinalIgnoreCase)))
 			{
 				continue;
 			}
@@ -395,14 +381,4 @@ public class VideoEncoder : IVideoEncoder
 			}
 		}
 	}
-
-	/// <summary>
-	///     Replicates the directory structure of the input path in the output path.
-	/// </summary>
-	/// <param name="path">The path to the file to be processed.</param>
-	/// <returns>The path to the file in the output directory.</returns>
-	private string GetTargetPath(string path) =>
-		Path.GetExtension(OutPath).Length == 0
-			? Path.Join(OutPath, path.Replace(InPath, string.Empty))
-			: Path.ChangeExtension(OutPath, ".mkv");
 }
