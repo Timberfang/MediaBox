@@ -69,13 +69,30 @@ public class VideoEncoder : IVideoEncoder
 	///     Lower preset values result in larger files but encode faster.
 	///     Quality is not affected by the preset value.
 	/// </remarks>
-	private int VideoPreset =>
-		Preset switch
+	private string VideoPreset
+	{
+		get
 		{
-			EncoderPreset.Quality => 6,
-			EncoderPreset.Normal => 10,
-			_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
-		};
+			if (VideoCodec == VideoCodec.AV1) {
+				return Preset switch
+				{
+					EncoderPreset.Quality => "6",
+					EncoderPreset.Normal => "10",
+					_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
+				};
+			}
+			else
+			{
+				return Preset switch
+				{
+					EncoderPreset.Quality => "slow",
+					EncoderPreset.Normal => "medium",
+					_ => throw new ArgumentOutOfRangeException(nameof(Preset), Preset, "Invalid encoder preset.")
+				};
+			}
+		}
+	}
+
 
 	/// <summary>
 	///     The CRF (Constant Rate Factor) value used by FFmpeg.
