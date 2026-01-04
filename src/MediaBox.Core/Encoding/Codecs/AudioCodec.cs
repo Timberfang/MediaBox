@@ -12,5 +12,7 @@ public enum AudioCodec
 	/// <summary>Transcode to the <see href="https://en.wikipedia.org/wiki/Advanced_Audio_Coding">AAC</see> codec.</summary>
 	AAC,
 	/// <summary>Transcode to the <see href="https://en.wikipedia.org/wiki/Opus_(audio_format)">Opus</see> codec.</summary>
-	OPUS
+	OPUS,
+	/// <summary>Represents unrecognized codecs.</summary>
+	Unknown
 }

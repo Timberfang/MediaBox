@@ -14,5 +14,7 @@ public enum VideoCodec
 	/// <summary>Transcode to the <see href="https://en.wikipedia.org/wiki/AV1">AOMedia Video 1</see> (AV1) codec.</summary>
 	AV1,
 	/// <summary>Transcode to the <see href="https://en.wikipedia.org/wiki/VP9">VP9</see> (AV1) codec.</summary>
-	VP9
+	VP9,
+	/// <summary>Represents unrecognized codecs.</summary>
+	Unknown
 }

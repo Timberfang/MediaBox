@@ -268,11 +268,11 @@ public class VideoEncoder : IVideoEncoder
 			argsMain =
 			[
 				"-c:v",
-				FFmpeg.VideoCodecs[VideoCodec],
+				FFmpeg.s_videoEncoders[VideoCodec],
 				"-c:a",
-				FFmpeg.AudioCodecs[AudioCodec],
+				FFmpeg.s_audioEncoders[AudioCodec],
 				"-c:s",
-				FFmpeg.SubtitleCodecs[SubtitleCodec],
+				FFmpeg.s_subtitleEncoders[SubtitleCodec],
 				"-pass",
 				"2",
 				"-quality",
@@ -305,7 +305,7 @@ public class VideoEncoder : IVideoEncoder
 			argsTwoPass =
 			[
 				"-c:v",
-				FFmpeg.VideoCodecs[VideoCodec],
+				FFmpeg.s_videoEncoders[VideoCodec],
 				"-pass",
 				"1",
 				"-quality",
@@ -344,11 +344,11 @@ public class VideoEncoder : IVideoEncoder
 			argsMain =
 			[
 				"-c:v",
-				FFmpeg.VideoCodecs[VideoCodec],
+				FFmpeg.s_videoEncoders[VideoCodec],
 				"-c:a",
-				FFmpeg.AudioCodecs[AudioCodec],
+				FFmpeg.s_audioEncoders[AudioCodec],
 				"-c:s",
-				FFmpeg.SubtitleCodecs[SubtitleCodec],
+				FFmpeg.s_subtitleEncoders[SubtitleCodec],
 				"-crf",
 				VideoQuality.ToString(),
 				"-preset",
@@ -384,11 +384,15 @@ public class VideoEncoder : IVideoEncoder
 			// Fix subtitle codec if needed - .mp4 files use MOV_TEXT, which other formats don't support.
 			if (Path.GetExtension(file).Equals(".mp4") && Container is not VideoContainer.MP4)
 			{
-				argsMain.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec.SRT]);
+				argsMain.AddRange("-c:s", FFmpeg.s_subtitleEncoders[SubtitleCodec.SRT]);
+			}
+			else if (!Path.GetExtension(file).Equals(".mp4") && Container is VideoContainer.MP4)
+			{
+				argsMain.AddRange("-c:s", FFmpeg.s_subtitleEncoders[SubtitleCodec.MOVTEXT]);
 			}
 			else
 			{
-				argsMain.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec]);
+				argsMain.AddRange("-c:s", FFmpeg.s_subtitleEncoders[SubtitleCodec]);
 			}
 
 			// Handle VP9-specific two-pass encoding

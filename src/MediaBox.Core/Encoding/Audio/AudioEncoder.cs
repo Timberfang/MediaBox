@@ -109,7 +109,7 @@ public class AudioEncoder : IAudioEncoder
 		List<string> args =
 		[
 			"-c:a",
-			FFmpeg.AudioCodecs[AudioCodec]
+			FFmpeg.s_audioEncoders[AudioCodec]
 		];
 
 		foreach (string file in _files)

@@ -9,10 +9,11 @@ namespace MediaBox.Core.ExternalProcess;
 /// </summary>
 public static partial class FFmpeg
 {
+	// TODO: support more codecs
 	/// <summary>
 	///     Convert audio codec settings into FFmpeg values.
 	/// </summary>
-	internal static readonly Dictionary<AudioCodec, string> AudioCodecs = new()
+	internal static readonly Dictionary<AudioCodec, string> s_audioEncoders = new()
 	{
 		{ AudioCodec.Copy, "copy" },
 		{ AudioCodec.MP3, "libmp3lame" },
@@ -20,10 +21,18 @@ public static partial class FFmpeg
 		{ AudioCodec.OPUS, "libopus" }
 	};
 
+	// FFMpeg names sourced from https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/codec_desc.c
+	private static readonly Dictionary<string, AudioCodec> s_audioCodec = new(StringComparer.OrdinalIgnoreCase)
+	{
+		{ "mp3", AudioCodec.MP3 },
+		{ "aac", AudioCodec.AAC },
+		{ "opus", AudioCodec.OPUS }
+	};
+
 	/// <summary>
 	///     Convert video codec settings into FFmpeg values.
 	/// </summary>
-	internal static readonly Dictionary<VideoCodec, string> VideoCodecs = new()
+	internal static readonly Dictionary<VideoCodec, string> s_videoEncoders = new()
 	{
 		{ VideoCodec.Copy, "copy" },
 		{ VideoCodec.AVC, "libx264" },
@@ -32,16 +41,35 @@ public static partial class FFmpeg
 		{ VideoCodec.VP9, "libvpx-vp9" }
 	};
 
+	// FFMpeg names sourced from https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/codec_desc.c
+	private static readonly Dictionary<string, VideoCodec> s_videoCodec = new(StringComparer.OrdinalIgnoreCase)
+	{
+		{ "h264", VideoCodec.AVC },
+		{ "hevc", VideoCodec.HEVC },
+		{ "av1", VideoCodec.AV1 },
+		{ "vp9", VideoCodec.VP9 }
+	};
+
 	/// <summary>
 	///     Convert subtitle codec settings into FFmpeg values.
 	/// </summary>
-	internal static readonly Dictionary<SubtitleCodec, string> SubtitleCodecs = new()
+	internal static readonly Dictionary<SubtitleCodec, string> s_subtitleEncoders = new()
 	{
 		{ SubtitleCodec.Copy, "copy" },
 		{ SubtitleCodec.SRT, "subrip" },
 		{ SubtitleCodec.WebVTT, "webvtt" },
 		{ SubtitleCodec.SSA, "ass" },
 		{ SubtitleCodec.MOVTEXT, "mov_text" }
+	};
+
+	// FFMpeg names sourced from https://github.com/FFmpeg/FFmpeg/blob/master/libavcodec/codec_desc.c
+	private static readonly Dictionary<string, SubtitleCodec> s_subtitleCodec = new(StringComparer.OrdinalIgnoreCase)
+	{
+		{ "subrip", SubtitleCodec.SRT },
+		{ "srt", SubtitleCodec.SRT },
+		{ "ssa", SubtitleCodec.SSA },
+		{ "ass", SubtitleCodec.SSA },
+		{ "mov_text", SubtitleCodec.MOVTEXT }
 	};
 
 	/// <summary>
@@ -256,6 +284,51 @@ public static partial class FFmpeg
 			}
 		}
 		return CroppingRegex().Match(ffmpegOutput).Groups[0].Value;
+	}
+
+	public static async Task<AudioCodec[]> GetAudioCodecAsync(string path, CancellationToken token)
+	{
+		if (!File.Exists(path)) { throw new FileNotFoundException(path); }
+
+		string[] args = [ "-select_streams", "a", "-show_entries", "stream=codec_name", "-of", "default=noprint_wrappers=1:nokey=1" ];
+		string[] output = (await ProbeAsync(path, args, token)).Split(Environment.NewLine);
+		List<AudioCodec> codecs = [];
+		foreach (string codec in output)
+		{
+			if (s_audioCodec.TryGetValue(codec, out AudioCodec value)) { codecs.Add(value); }
+			else codecs.Add(AudioCodec.Unknown);
+		}
+		return [.. codecs];
+	}
+
+	public static async Task<VideoCodec[]> GetVideoCodecAsync(string path, CancellationToken token)
+	{
+		if (!File.Exists(path)) { throw new FileNotFoundException(path); }
+
+		string[] args = [ "-select_streams", "v", "-show_entries", "stream=codec_name", "-of", "default=noprint_wrappers=1:nokey=1" ];
+		string[] output = (await ProbeAsync(path, args, token)).Split(Environment.NewLine);
+		List<VideoCodec> codecs = [];
+		foreach (string codec in output)
+		{
+			if (s_videoCodec.TryGetValue(codec, out VideoCodec value)) { codecs.Add(value); }
+			else codecs.Add(VideoCodec.Unknown);
+		}
+		return [.. codecs];
+	}
+
+	public static async Task<SubtitleCodec[]> GetSubtitleCodecAsync(string path, CancellationToken token)
+	{
+		if (!File.Exists(path)) { throw new FileNotFoundException(path); }
+
+		string[] args = [ "-select_streams", "s", "-show_entries", "stream=codec_name", "-of", "default=noprint_wrappers=1:nokey=1" ];
+		string[] output = (await ProbeAsync(path, args, token)).Split(Environment.NewLine);
+		List<SubtitleCodec> codecs = [];
+		foreach (string codec in output)
+		{
+			if (s_subtitleCodec.TryGetValue(codec, out SubtitleCodec value)) { codecs.Add(value); }
+			else codecs.Add(SubtitleCodec.Unknown);
+		}
+		return [.. codecs];
 	}
 
 	/// <summary>

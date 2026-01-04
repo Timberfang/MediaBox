@@ -14,5 +14,7 @@ public enum SubtitleCodec
 	/// <summary>Transcode to the <see href="http://www.tcax.org/docs/ass-specs.htm">Sub Station Alpha</see> codec.</summary>
 	SSA,
 	/// <summary>Transcode to the <see href="https://en.wikipedia.org/wiki/MPEG-4_Part_17">MPEG-4 Timed Text</see> (A.K.A. 'movtext' or MPEG-4 Part 17) codec.</summary>
-	MOVTEXT
+	MOVTEXT,
+	/// <summary>Represents unrecognized codecs.</summary>
+	Unknown
 }
