@@ -35,7 +35,15 @@ public class AudioEncoder : IAudioEncoder
 	/// <param name="inPath">The path to the input audio file.</param>
 	/// <param name="outPath">The path to save the encoded audio file.</param>
 	/// <param name="preset">The encoding preset to use: "Quality", "Normal", or "Fast".</param>
-	public AudioEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal)
+	/// <param name="audioCodec">Specify audio codec.</param>
+	/// <param name="force">Process files even if they would normally be excluded from processing.</param>
+	public AudioEncoder(
+		string inPath,
+		string outPath,
+		EncoderPreset preset = EncoderPreset.Normal,
+		AudioCodec audioCodec = AudioCodec.Copy,
+		bool force = false
+	)
 	{
 		InPath = inPath;
 		OutPath = outPath;
@@ -44,7 +52,7 @@ public class AudioEncoder : IAudioEncoder
 		if (Directory.Exists(InPath))
 		{
 			_files = ImmutableArray.Create([.. Directory.EnumerateFiles(InPath, "*", SearchOption.AllDirectories)
-				.Where(f => _filter.Contains(Path.GetExtension(f)))]);;
+				.Where(f => _filter.Contains(Path.GetExtension(f)))]);
 		}
 		else if (File.Exists(InPath))
 		{
@@ -87,6 +95,9 @@ public class AudioEncoder : IAudioEncoder
 	// Encoding
 	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
+
+	/// <inheritdoc/>
+	public event EventHandler<string>? Error;
 
 	/// <inheritdoc />
 	public async Task EncodeAsync() => await EncodeAsync(CancellationToken.None);

@@ -45,16 +45,26 @@ public class ImageEncoder : IImageEncoder
 	/// <param name="inPath">The path to the input image file.</param>
 	/// <param name="outPath">The path to save the encoded image file.</param>
 	/// <param name="preset">The encoding preset to use: "Quality", "Normal", or "Fast".</param>
-	public ImageEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal)
+	/// <param name="codec">Specify image codec.</param>
+	/// <param name="force">Process files even if they would normally be excluded from processing.</param>
+	public ImageEncoder(
+		string inPath,
+		string outPath,
+		EncoderPreset preset = EncoderPreset.Normal,
+		ImageCodec codec = ImageCodec.JPEG,
+		bool force = false
+	)
 	{
 		InPath = inPath;
 		OutPath = outPath;
 		Preset = preset;
+		ImageCodec = codec;
+		Force = force;
 
 		if (Directory.Exists(InPath))
 		{
 			_files = ImmutableArray.Create([.. Directory.EnumerateFiles(InPath, "*", SearchOption.AllDirectories)
-				.Where(f => _filter.Contains(Path.GetExtension(f)))]);;
+				.Where(f => _filter.Contains(Path.GetExtension(f)))]);
 		}
 		else if (File.Exists(InPath))
 		{
@@ -85,6 +95,9 @@ public class ImageEncoder : IImageEncoder
 	// Encoding
 	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
+
+	/// <inheritdoc/>
+	public event EventHandler<string>? Error;
 
 	/// <inheritdoc />
 	public async Task EncodeAsync()

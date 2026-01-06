@@ -5,36 +5,25 @@ namespace MediaBox.Core.Encoding;
 /// </summary>
 public interface IEncoder
 {
-	/// <summary>
-	///     The path to a file or directory containing input media.
-	/// </summary>
+	/// <summary>Path to the media file or directory.</summary>
 	string InPath { get; set; }
 
-	/// <summary>
-	///     The path to a file or directory where the encoded media will be saved.
-	/// </summary>
-	/// <remarks>
-	///     If more than one file is provided, outPath must be a directory.
-	/// </remarks>
+	/// <summary>Path where the transcoded media will be saved.</summary>
 	string OutPath { get; set; }
 
-	/// <summary>
-	///     The encoding preset to use: "Quality", "Normal", or "Fast".
-	/// </summary>
+	/// <summary><see cref="EncoderPreset"/>: favor quality, speed, file size, use a balanced approach.</summary>
 	EncoderPreset Preset { get; set; }
 
-	/// <summary>
-	///     When true, re-encode files that are known to already match the target codec or container.
-	/// </summary>
-	bool Force { get; set; }
+	/// <summary>Encode files even if automatic filtering would normally exclude them.</summary>
+	/// <remarks>Files already using the target codec(s) and file extension are normally excluded.</remarks>
+	public bool Force { get; set; }
 
-	/// <summary>
-	///     An event that's raised whenever encoding starts on a new file.
-	/// </summary>
+	/// <summary>An event that's raised whenever encoding starts on a new file.</summary>
 	event EventHandler<string>? FileEncodingStarted;
 
-	/// <summary>
-	///     Encodes all valid files in the input path to the output path.
-	/// </summary>
+	/// <summary>An event that's raised whenever a non-terminating error occurs.</summary>
+	event EventHandler<string>? Error;
+
+	/// <summary>Encodes all valid files in the input path to the output path.</summary>
 	Task EncodeAsync();
 }

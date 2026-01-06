@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.ComponentModel;
 using MediaBox.Core.Encoding.Codecs;
 using MediaBox.Core.Utility;
 
@@ -38,17 +39,36 @@ public class VideoEncoder : IVideoEncoder
 	/// <param name="inPath">The path to the input video file.</param>
 	/// <param name="outPath">The path to save the encoded video file.</param>
 	/// <param name="preset">The encoding preset to use: "Quality", "Normal", or "Fast".</param>
+	/// <param name="videoCodec">Specify video codec.</param>
+	/// <param name="audioCodec">Specify audio codec.</param>
+	/// <param name="subtitleCodec">Specify subtitle codec.</param>
+	/// <param name="videoContainer">Specify video container.</param>
+	/// <param name="force">Process files even if they would normally be excluded from processing.</param>
 	/// <exception cref="FileNotFoundException">Thrown if the given input path does not exist.</exception>
-	public VideoEncoder(string inPath, string outPath, EncoderPreset preset = EncoderPreset.Normal)
+	public VideoEncoder(
+		string inPath,
+		string outPath,
+		EncoderPreset preset = EncoderPreset.Normal,
+		VideoCodec videoCodec = VideoCodec.Copy,
+		AudioCodec audioCodec = AudioCodec.Copy,
+		SubtitleCodec subtitleCodec = SubtitleCodec.Copy,
+		VideoContainer videoContainer = VideoContainer.MP4,
+		bool force = false
+	)
 	{
 		InPath = inPath;
 		OutPath = outPath;
 		Preset = preset;
+		VideoCodec = videoCodec;
+		AudioCodec = audioCodec;
+		SubtitleCodec = subtitleCodec;
+		Container = videoContainer;
+		Force = force;
 
 		if (Directory.Exists(InPath))
 		{
 			_files = ImmutableArray.Create([.. Directory.EnumerateFiles(InPath, "*", SearchOption.AllDirectories)
-				.Where(f => _filter.Contains(Path.GetExtension(f)))]);;
+				.Where(f => _filter.Contains(Path.GetExtension(f)))]);
 		}
 		else if (File.Exists(InPath))
 		{
@@ -74,7 +94,8 @@ public class VideoEncoder : IVideoEncoder
 	{
 		get
 		{
-			if (VideoCodec == VideoCodec.AV1) {
+			if (VideoCodec == VideoCodec.AV1)
+			{
 				return Preset switch
 				{
 					EncoderPreset.Quality => "6",
@@ -195,6 +216,9 @@ public class VideoEncoder : IVideoEncoder
 	/// <inheritdoc />
 	public event EventHandler<string>? FileEncodingStarted;
 
+	/// <inheritdoc/>
+	public event EventHandler<string>? Error;
+
 	/// <inheritdoc />
 	public async Task EncodeAsync() => await EncodeAsync(false);
 
@@ -210,8 +234,34 @@ public class VideoEncoder : IVideoEncoder
 		{
 			PlatformID.Win32NT => "NUL",
 			PlatformID.Unix => "/dev/null",
-			_ => throw new PlatformNotSupportedException($"Unspported platform: '{Environment.OSVersion.Platform}'.")
+			_ => throw new PlatformNotSupportedException($"Unsupported platform: '{Environment.OSVersion.Platform}'.")
 		};
+
+		if (Container is VideoContainer.WEBM)
+		{
+			// TODO: Detect existing codec in case of VideoCodec.Copy.
+			if (VideoCodec is not (VideoCodec.VP9 or VideoCodec.AV1))
+			{
+				Error?.Invoke(this, "Container 'webm' only supports the VP9 and AV1 video codecs. Defaulting to VP9.");
+				VideoCodec = VideoCodec.VP9;
+			}
+			if (AudioCodec is not AudioCodec.OPUS)
+			{
+				Error?.Invoke(this, "Container 'webm' only support the OPUS audio codec. Defaulting to OPUS.");
+				AudioCodec = AudioCodec.OPUS;
+			}
+			if (SubtitleCodec is not SubtitleCodec.WebVTT)
+			{
+				Error?.Invoke(this, "Container 'webm' only supports the WebVTT subtitle codec. Defaulting to WebVTT.");
+				SubtitleCodec = SubtitleCodec.WebVTT;
+			}
+		}
+		if (Container is VideoContainer.MP4 && SubtitleCodec is not SubtitleCodec.MOVTEXT)
+		{
+			Error?.Invoke(this, "Container 'mp4' only supports the MOV_TEXT subtitle codec. Defaulting to MOV_TEXT.");
+			SubtitleCodec = SubtitleCodec.MOVTEXT;
+		}
+
 		if (VideoCodec is VideoCodec.VP9)
 		{
 			// TODO: Move this to json, make it configurable
@@ -335,10 +385,6 @@ public class VideoEncoder : IVideoEncoder
 			if (Path.GetExtension(file).Equals(".mp4") && Container is not VideoContainer.MP4)
 			{
 				argsMain.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec.SRT]);
-			}
-			else if (!Path.GetExtension(file).Equals(".mp4") && Container is VideoContainer.MP4)
-			{
-				argsMain.AddRange("-c:s", FFmpeg.SubtitleCodecs[SubtitleCodec.MOVTEXT]);
 			}
 			else
 			{

@@ -39,6 +39,7 @@ public static partial class FFmpeg
 	{
 		{ SubtitleCodec.Copy, "copy" },
 		{ SubtitleCodec.SRT, "subrip" },
+		{ SubtitleCodec.WebVTT, "webvtt" },
 		{ SubtitleCodec.SSA, "ass" },
 		{ SubtitleCodec.MOVTEXT, "mov_text" }
 	};
