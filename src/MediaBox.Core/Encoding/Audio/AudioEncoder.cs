@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using MediaBox.Core.Encoding.Codecs;
 using MediaBox.Core.Utility;
 
@@ -12,7 +13,7 @@ public class AudioEncoder : IAudioEncoder
 	/// <summary>
 	///     Files to be processed.
 	/// </summary>
-	private readonly IEnumerable<string> _files;
+	private readonly ImmutableArray<string> _files;
 
 	/// <summary>
 	///     File extensions that will be considered 'audio' files.
@@ -42,8 +43,8 @@ public class AudioEncoder : IAudioEncoder
 
 		if (Directory.Exists(InPath))
 		{
-			_files = Directory.EnumerateFiles(InPath, "*", SearchOption.AllDirectories)
-				.Where(f => _filter.Contains(Path.GetExtension(f)));
+			_files = ImmutableArray.Create([.. Directory.EnumerateFiles(InPath, "*", SearchOption.AllDirectories)
+				.Where(f => _filter.Contains(Path.GetExtension(f)))]);;
 		}
 		else if (File.Exists(InPath))
 		{
