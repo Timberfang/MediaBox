@@ -8,7 +8,14 @@
 		<!-- Required to workaround bug with .NET 10, see https://github.com/dotnet/sdk/issues/51766 -->
 		<PublishSelfContained>true</PublishSelfContained>
 		<InvariantGlobalization>true</InvariantGlobalization>
-		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<!-- Generate cleaner release builds -->
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<DebugType>None</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+		<GenerateDocumentationFile>false</GenerateDocumentationFile>
 	</PropertyGroup>
 
 	<ItemGroup>

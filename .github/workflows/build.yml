@@ -37,17 +37,9 @@ jobs:
     - name:  Package release
       run: |
         if [ "$RUNNER_OS" == "Linux" ]; then
-          zip -j mediabox_linux-x64.zip \
-            ./artifacts/publish/MediaBox.CLI/release_linux-x64/mediabox \
-            ./artifacts/publish/MediaBox.CLI/release_linux-x64/libvips.so.42 \
-            ./LICENSE \
-            ./ThirdPartyNotices.txt
+          zip -j mediabox_linux-x64.zip ./artifacts/publish/MediaBox.CLI/release_linux-x64/*
         elif [ "$RUNNER_OS" == "Windows" ]; then
-          7z a mediabox_win-x64.zip \
-            ./artifacts/publish/MediaBox.CLI/release_win-x64/mediabox.exe \
-            ./artifacts/publish/MediaBox.CLI/release_win-x64/libvips-42.dll \
-            ./LICENSE \
-            ./ThirdPartyNotices.txt
+          7z a mediabox_win-x64.zip ./artifacts/publish/MediaBox.CLI/release_win-x64/*
         else
           echo "$RUNNER_OS not supported"
           exit 1
