@@ -15,6 +15,12 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
+	<!-- Generate cleaner release builds -->
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<DebugType>None</DebugType>
+		<DebugSymbols>false</DebugSymbols>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<ProjectReference Include="../MediaBox.Core/MediaBox.Core.csproj" />
 	</ItemGroup>
